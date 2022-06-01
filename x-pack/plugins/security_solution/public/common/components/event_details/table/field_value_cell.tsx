@@ -47,7 +47,7 @@ export const FieldValueCell = React.memo(
       >
         {values != null &&
           values.map((value, i) => {
-            if (fieldFromBrowserField == null) {
+            if (!fieldFromBrowserField) {
               return (
                 <EuiFlexItem grow={false} key={`${i}-${value}`}>
                   <EuiText size="xs" key={`${i}-${value}`}>

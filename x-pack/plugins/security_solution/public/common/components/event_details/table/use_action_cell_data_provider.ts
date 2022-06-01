@@ -81,7 +81,7 @@ export const useActionCellDataProvider = ({
         let id: string = '';
         let valueAsString: string = isString(value) ? value : `${values}`;
         const appendedUniqueId = `${contextId}-${eventId}-${field}-${index}-${value}`;
-        if (fieldFromBrowserField == null) {
+        if (!fieldFromBrowserField) {
           memo.stringValues.push(valueAsString);
           return memo;
         }
