@@ -25,6 +25,19 @@ import { TestProviders } from '../../../../common/mock/test_providers';
 import { useAppToasts } from '../../../../common/hooks/use_app_toasts';
 import { useAppToastsMock } from '../../../../common/hooks/use_app_toasts.mock';
 
+jest.mock('../../../../common/components/user_privileges', () => {
+  return {
+    useUserPrivileges: () => ({
+      /** overrides for tests */
+      kibanaSecuritySolutionsPrivileges: { crud: true, read: true },
+      /** default */
+      endpointPrivileges: { loading: true, canAccessEndpointManagement: false },
+      listPrivileges: { loading: false, error: undefined, result: undefined },
+      detectionEnginePrivileges: { loading: false, error: undefined, result: undefined },
+    }),
+  };
+});
+
 import { StatefulBody, Props } from '.';
 import { Sort } from './sort';
 import { getDefaultControlColumn } from './control_columns';

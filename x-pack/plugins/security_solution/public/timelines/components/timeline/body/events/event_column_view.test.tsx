@@ -11,6 +11,19 @@ import React from 'react';
 import { TestProviders } from '../../../../../common/mock';
 import * as i18n from '../translations';
 
+jest.mock('../../../../../common/components/user_privileges', () => {
+  return {
+    useUserPrivileges: () => ({
+      /** overrides for tests */
+      kibanaSecuritySolutionsPrivileges: { crud: true, read: true },
+      /** default */
+      endpointPrivileges: { loading: true, canAccessEndpointManagement: false },
+      listPrivileges: { loading: false, error: undefined, result: undefined },
+      detectionEnginePrivileges: { loading: false, error: undefined, result: undefined },
+    }),
+  };
+});
+
 import { EventColumnView } from './event_column_view';
 import { DefaultCellRenderer } from '../../cell_rendering/default_cell_renderer';
 import { TimelineTabs, TimelineType, TimelineId } from '../../../../../../common/types/timeline';
