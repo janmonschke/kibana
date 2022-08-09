@@ -16,6 +16,7 @@ import {
 } from '../../screens/alerts_details';
 import { QUERY_TAB_BUTTON, TIMELINE_TITLE } from '../../screens/timeline';
 
+import { createBasicUser, deleteBasicUser } from '../../tasks/api_calls/user';
 import { expandFirstAlert } from '../../tasks/alerts';
 import { verifyInsightCount } from '../../tasks/alerts_details';
 import { setStartDate } from '../../tasks/date_picker';
@@ -31,8 +32,10 @@ import { ALERTS_URL } from '../../urls/navigation';
 
 describe('Alert Flyout', () => {
   before(() => {
+    deleteBasicUser();
     cleanKibana();
     login();
+    createBasicUser();
     createCustomRuleEnabled(getNewRule(), 'rule1');
     visitWithoutDateRange(ALERTS_URL);
     const dateContainingAllEvents = 'Jul 27, 2015 @ 00:00:00.000';
@@ -43,6 +46,10 @@ describe('Alert Flyout', () => {
 
   afterEach(() => {
     closeTimeline();
+  });
+
+  after(() => {
+    deleteBasicUser();
   });
 
   it('Opens a new timeline investigation (from a prevalence field)', () => {

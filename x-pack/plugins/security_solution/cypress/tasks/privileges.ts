@@ -7,7 +7,7 @@
 
 import { constructUrlWithUser, getEnvAuth } from './login';
 
-interface User {
+export interface User {
   username: string;
   password: string;
   description?: string;
@@ -40,7 +40,7 @@ interface KibanaPrivilege {
   feature?: FeaturesPrivileges;
 }
 
-interface Role {
+export interface Role {
   name: string;
   privileges: {
     elasticsearch?: ElasticSearchPrivilege;

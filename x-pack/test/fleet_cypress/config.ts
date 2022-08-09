@@ -27,6 +27,7 @@ export default async function ({ readConfigFile }: FtrConfigProviderContext) {
         // define custom es server here
         // API Keys is enabled at the top level
         'xpack.security.enabled=true',
+        'xpack.licensing.api_polling_frequency=1s',
         'http.host=0.0.0.0',
       ],
     },
@@ -36,6 +37,7 @@ export default async function ({ readConfigFile }: FtrConfigProviderContext) {
       serverArgs: [
         ...xpackFunctionalTestsConfig.get('kbnTestServer.serverArgs'),
         '--csp.strict=false',
+        '--xpack.licensing.api_polling_frequency=1s',
         // define custom kibana server args here
         `--elasticsearch.ssl.certificateAuthorities=${CA_CERT_PATH}`,
 

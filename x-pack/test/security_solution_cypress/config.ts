@@ -27,6 +27,7 @@ export default async function ({ readConfigFile }: FtrConfigProviderContext) {
         // define custom es server here
         // API Keys is enabled at the top level
         'xpack.security.enabled=true',
+        // 'xpack.licensing.api_polling_frequency=1s',
       ],
     },
 
@@ -38,6 +39,9 @@ export default async function ({ readConfigFile }: FtrConfigProviderContext) {
         '--csp.warnLegacyBrowsers=false',
         // define custom kibana server args here
         `--elasticsearch.ssl.certificateAuthorities=${CA_CERT_PATH}`,
+
+        '--xpack.licensing.api_polling_frequency=1s',
+
         // retrieve rules from the filesystem but not from fleet for Cypress tests
         '--xpack.securitySolution.prebuiltRulesFromFileSystem=true',
         '--xpack.securitySolution.prebuiltRulesFromSavedObjects=false',
