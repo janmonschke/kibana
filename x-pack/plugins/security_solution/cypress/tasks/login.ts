@@ -72,7 +72,7 @@ export const getUrlWithRoute = (role: ROLES, route: string) => {
   return theUrl;
 };
 
-interface User {
+export interface User {
   username: string;
   password: string;
 }

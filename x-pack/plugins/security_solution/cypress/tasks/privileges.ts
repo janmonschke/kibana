@@ -52,6 +52,7 @@ export const secAll: Role = {
   name: 'sec_all_role',
   privileges: {
     elasticsearch: {
+      cluster: ['all'],
       indices: [
         {
           names: ['*'],

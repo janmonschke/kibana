@@ -16,7 +16,7 @@ import {
 } from '../../screens/alerts_details';
 import { QUERY_TAB_BUTTON, TIMELINE_TITLE } from '../../screens/timeline';
 
-import { createBasicUser, deleteBasicUser } from '../../tasks/api_calls/user';
+import { startBasicLicense, startPlatinumLicense } from '../../tasks/api_calls/license';
 import { expandFirstAlert } from '../../tasks/alerts';
 import { verifyInsightCount } from '../../tasks/alerts_details';
 import { setStartDate } from '../../tasks/date_picker';
@@ -29,13 +29,17 @@ import { login, visitWithoutDateRange } from '../../tasks/login';
 import { getNewRule } from '../../objects/rule';
 
 import { ALERTS_URL } from '../../urls/navigation';
+import {
+  createUsersAndRoles,
+  deleteUsersAndRoles,
+  secAll,
+  secAllUser,
+} from '../../tasks/privileges';
 
 describe('Alert Flyout', () => {
   before(() => {
-    deleteBasicUser();
     cleanKibana();
     login();
-    createBasicUser();
     createCustomRuleEnabled(getNewRule(), 'rule1');
     visitWithoutDateRange(ALERTS_URL);
     const dateContainingAllEvents = 'Jul 27, 2015 @ 00:00:00.000';
@@ -46,10 +50,6 @@ describe('Alert Flyout', () => {
 
   afterEach(() => {
     closeTimeline();
-  });
-
-  after(() => {
-    deleteBasicUser();
   });
 
   it('Opens a new timeline investigation (from a prevalence field)', () => {
@@ -81,4 +81,25 @@ describe('Alert Flyout', () => {
       investigateSelector: INSIGHTS_INVESTIGATE_ANCESTRY_ALERTS_IN_TIMELINE_BUTTON,
     });
   });
+});
+
+describe('Alert flyout, basic User', () => {
+  before(() => {
+    createUsersAndRoles([secAllUser], [secAll]);
+    startBasicLicense(secAllUser);
+    login();
+    createCustomRuleEnabled(getNewRule(), 'rule1');
+    visitWithoutDateRange(ALERTS_URL);
+    const dateContainingAllEvents = 'Jul 27, 2015 @ 00:00:00.000';
+    setStartDate(dateContainingAllEvents);
+    waitForAlertsToPopulate();
+    expandFirstAlert();
+  });
+
+  after(() => {
+    startPlatinumLicense(secAllUser);
+    deleteUsersAndRoles([secAllUser], [secAll]);
+  });
+
+  it('Should not see alerts related by ancestry', () => {});
 });
