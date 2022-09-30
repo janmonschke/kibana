@@ -368,7 +368,6 @@ export const useTimelineEvents = ({
     });
   }, [
     alertConsumers,
-    dispatch,
     indexNames,
     activePage,
     endDate,
