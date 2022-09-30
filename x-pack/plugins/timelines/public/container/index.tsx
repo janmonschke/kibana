@@ -63,6 +63,7 @@ export interface TimelineArgs {
   refetch: Refetch;
   totalCount: number;
   updatedAt: number;
+  loading: boolean;
 }
 
 type LoadPage = (newActivePage: number) => void;
@@ -167,7 +168,6 @@ export const useTimelineEvents = ({
   const refetch = useRef<Refetch>(noop);
   const abortCtrl = useRef(new AbortController());
   const searchSubscription$ = useRef(new Subscription());
-  const [loading, setLoading] = useState(true);
   const [activePage, setActivePage] = useState(0);
   const [timelineRequest, setTimelineRequest] = useState<TimelineRequest<typeof language> | null>(
     null
@@ -219,6 +219,7 @@ export const useTimelineEvents = ({
     events: [],
     loadPage: wrappedLoadPage,
     updatedAt: 0,
+    loading: true,
   });
   const { addWarning } = useAppToasts();
 
@@ -231,7 +232,10 @@ export const useTimelineEvents = ({
       const asyncSearch = async () => {
         prevTimelineRequest.current = request;
         abortCtrl.current = new AbortController();
-        setLoading(true);
+        setTimelineResponse((previousResponse) => ({
+          ...previousResponse,
+          loading: true,
+        }));
         if (data && data.search) {
           const { endTracking } = startTracking();
           const abortSignal = abortCtrl.current.signal;
@@ -262,23 +266,29 @@ export const useTimelineEvents = ({
                       pageInfo: response.pageInfo,
                       totalCount: response.totalCount,
                       updatedAt: Date.now(),
+                      loading: false,
                     };
                     setUpdated(newTimelineResponse.updatedAt);
                     return newTimelineResponse;
                   });
-                  setLoading(false);
 
                   searchSubscription$.current.unsubscribe();
                 } else if (isErrorResponse(response)) {
                   endTracking('invalid');
-                  setLoading(false);
+                  setTimelineResponse((previousResponse) => ({
+                    ...previousResponse,
+                    loading: false,
+                  }));
                   addWarning(i18n.ERROR_TIMELINE_EVENTS);
                   searchSubscription$.current.unsubscribe();
                 }
               },
               error: (msg) => {
                 endTracking(abortSignal.aborted ? 'aborted' : 'error');
-                setLoading(false);
+                setTimelineResponse((previousResponse) => ({
+                  ...previousResponse,
+                  loading: false,
+                }));
                 data.search.showError(msg);
                 searchSubscription$.current.unsubscribe();
               },
@@ -405,9 +415,10 @@ export const useTimelineEvents = ({
         events: [],
         loadPage: wrappedLoadPage,
         updatedAt: 0,
+        loading: true,
       });
     }
   }, [filterQuery, id, refetchGrid, wrappedLoadPage]);
 
-  return [loading, timelineResponse];
+  return [timelineResponse.loading, timelineResponse];
 };
