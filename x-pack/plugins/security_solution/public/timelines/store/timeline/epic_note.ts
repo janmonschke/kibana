@@ -93,7 +93,7 @@ export const epicPersistNote = (
         endTimelineSaving({
           id: action.payload.id,
         }),
-      ].filter((item) => item != null);
+      ].filter(Boolean);
     }),
     startWith(startTimelineSaving({ id: action.payload.id })),
     takeUntil(

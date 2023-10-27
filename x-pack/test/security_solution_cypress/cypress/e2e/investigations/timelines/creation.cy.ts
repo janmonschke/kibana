@@ -17,6 +17,7 @@ import {
   TIMELINE_FLYOUT_WRAPPER,
   TIMELINE_QUERY,
   TIMELINE_PANEL,
+  TIMELINE_STATUS,
   TIMELINE_TAB_CONTENT_GRAPHS_NOTES,
   TIMELINE_SAVE_MODAL_OPEN_BUTTON,
   SAVE_TIMELINE_BTN_TOOLTIP,
@@ -35,10 +36,12 @@ import {
   clickingOnCreateTimelineFormTemplateBtn,
   closeTimeline,
   createNewTimeline,
+  executeTimelineKQL,
   expandEventAction,
   goToQueryTab,
   pinFirstEvent,
   populateTimeline,
+  saveTimeline,
 } from '../../../tasks/timeline';
 
 import { OVERVIEW_URL, TIMELINE_TEMPLATES_URL } from '../../../urls/navigation';
@@ -55,20 +58,16 @@ describe('Create a timeline from a template', { tags: ['@ess', '@serverless'] },
     visit(TIMELINE_TEMPLATES_URL);
   });
 
-  it(
-    'Should have the same query and open the timeline modal',
-    { tags: '@brokenInServerless' },
-    () => {
-      selectCustomTemplates();
-      expandEventAction();
-      clickingOnCreateTimelineFormTemplateBtn();
+  it('Should have the same query and open the timeline modal', () => {
+    selectCustomTemplates();
+    expandEventAction();
+    clickingOnCreateTimelineFormTemplateBtn();
 
-      cy.get(TIMELINE_FLYOUT_WRAPPER).should('have.css', 'visibility', 'visible');
-      cy.get(TIMELINE_DESCRIPTION).should('have.text', getTimeline().description);
-      cy.get(TIMELINE_QUERY).should('have.text', getTimeline().query);
-      closeTimeline();
-    }
-  );
+    cy.get(TIMELINE_FLYOUT_WRAPPER).should('have.css', 'visibility', 'visible');
+    cy.get(TIMELINE_DESCRIPTION).should('have.text', getTimeline().description);
+    cy.get(TIMELINE_QUERY).should('have.text', getTimeline().query);
+    closeTimeline();
+  });
 });
 
 describe('Timelines', (): void => {
@@ -112,7 +111,7 @@ describe('Timelines', (): void => {
 
   describe(
     'Creates a timeline by clicking untitled timeline from bottom bar',
-    { tags: ['@ess', '@brokenInServerless'] },
+    { tags: ['@ess', '@serverless'] },
     () => {
       beforeEach(() => {
         login();
@@ -148,4 +147,35 @@ describe('Timelines', (): void => {
       });
     }
   );
+
+  describe('shows the different timeline states', () => {
+    before(() => {
+      login();
+      visitWithTimeRange(OVERVIEW_URL);
+      openTimelineUsingToggle();
+    });
+
+    it('should show the correct timeline status', { tags: ['@ess', '@serverless'] }, () => {
+      // Unsaved
+      cy.get(TIMELINE_PANEL).should('be.visible');
+      cy.get(TIMELINE_STATUS).should('be.visible');
+      cy.get(TIMELINE_STATUS).should('have.text', 'Unsaved');
+
+      saveTimeline();
+
+      // Saved
+      cy.get(TIMELINE_STATUS).should('be.visible');
+      cy.get(TIMELINE_STATUS)
+        .invoke('text')
+        .should('match', /^Saved/);
+
+      executeTimelineKQL('agent.name : *');
+
+      // Saved but has unsaved changes
+      cy.get(TIMELINE_STATUS).should('be.visible');
+      cy.get(TIMELINE_STATUS)
+        .invoke('text')
+        .should('match', /^Has unsaved changes/);
+    });
+  });
 });

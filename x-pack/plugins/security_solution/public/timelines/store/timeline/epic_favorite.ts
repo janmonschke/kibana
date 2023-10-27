@@ -70,7 +70,7 @@ export const epicPersistTimelineFavorite = (
         endTimelineSaving({
           id: action.payload.id,
         }),
-      ];
+      ].filter(Boolean);
     }),
     startWith(startTimelineSaving({ id: action.payload.id })),
     takeUntil(
