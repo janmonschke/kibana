@@ -409,7 +409,6 @@ const FlyoutHeaderComponent: React.FC<FlyoutHeaderProps> = ({ timelineId }) => {
   });
 
   const userCasesPermissions = useGetUserCasesPermissions();
-
   return (
     <StyledTimelineHeader alignItems="center" gutterSize="s">
       <EuiFlexItem>
