@@ -53,8 +53,10 @@ import {
   TOGGLE_TIMELINE_EXPAND_EVENT,
   CREATE_NEW_TIMELINE_TEMPLATE,
   OPEN_TIMELINE_TEMPLATE_ICON,
+  TIMELINE_SAVE_MODAL,
   TIMELINE_SAVE_MODAL_OPEN_BUTTON,
   TIMELINE_EDIT_MODAL_SAVE_BUTTON,
+  TIMELINE_PROGRESS_BAR,
   QUERY_TAB_BUTTON,
   CLOSE_OPEN_TIMELINE_MODAL_BTN,
   TIMELINE_ADD_FIELD_BUTTON,
@@ -108,10 +110,8 @@ export const addDescriptionToTimeline = (
   cy.get(TIMELINE_TITLE_INPUT).should('not.exist');
 };
 
-export const addNameToTimeline = (name: string, modalAlreadyOpen: boolean = false) => {
-  if (!modalAlreadyOpen) {
-    cy.get(TIMELINE_SAVE_MODAL_OPEN_BUTTON).first().click();
-  }
+export const addNameToTimelineAndSave = (name: string) => {
+  cy.get(TIMELINE_SAVE_MODAL_OPEN_BUTTON).first().click();
   cy.get(TIMELINE_TITLE_INPUT).should('not.be.disabled').clear();
   cy.get(TIMELINE_TITLE_INPUT).type(`${name}{enter}`);
   cy.get(TIMELINE_TITLE_INPUT).should('have.attr', 'value', name);
@@ -346,26 +346,22 @@ export const expandFirstTimelineEventDetails = () => {
   cy.get(TOGGLE_TIMELINE_EXPAND_EVENT).first().click({ force: true });
 };
 
+/**
+ * Saves the timeline. Make sure that the timeline has a title set
+ * before you're using this task. Otherwise it will fail to save.
+ */
 export const saveTimeline = () => {
   cy.get(TIMELINE_SAVE_MODAL_OPEN_BUTTON).first().click();
 
-  cy.get('[data-test-subj="save-timeline-modal"]').within(() => {
-    cy.get('[data-test-subj="progress-bar"]').should('not.exist');
+  cy.get(TIMELINE_SAVE_MODAL).within(() => {
+    cy.get(TIMELINE_PROGRESS_BAR).should('not.exist');
     cy.get(TIMELINE_TITLE_INPUT).should('not.be.disabled');
 
-    cy.get(TIMELINE_TITLE_INPUT)
-      .invoke('val')
-      .then((value) => {
-        if (!value) {
-          cy.get(TIMELINE_TITLE_INPUT).type(`test{enter}`);
-          cy.get(TIMELINE_TITLE_INPUT).invoke('val').should('equal', 'test');
-        }
+    cy.get(TIMELINE_EDIT_MODAL_SAVE_BUTTON).should('not.be.disabled');
+    cy.get(TIMELINE_EDIT_MODAL_SAVE_BUTTON).click();
 
-        cy.get(TIMELINE_EDIT_MODAL_SAVE_BUTTON).should('not.be.disabled');
-        cy.get(TIMELINE_EDIT_MODAL_SAVE_BUTTON).click();
-        cy.get('[data-test-subj="progress-bar"]').should('exist');
-        cy.get('[data-test-subj="progress-bar"]').should('not.exist');
-      });
+    cy.get(TIMELINE_PROGRESS_BAR).should('exist');
+    cy.get(TIMELINE_PROGRESS_BAR).should('not.exist');
   });
 };
 
