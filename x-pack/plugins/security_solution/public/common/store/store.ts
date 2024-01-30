@@ -11,7 +11,6 @@ import type {
   Middleware,
   Dispatch,
   PreloadedState,
-  CombinedState,
   AnyAction,
   Reducer,
 } from 'redux';
@@ -39,7 +38,6 @@ import type { TimelineModel } from '../../timelines/store/model';
 import { inputsSelectors } from './inputs';
 import type { SubPluginsInitReducer } from './reducer';
 import { createInitialState, createReducer } from './reducer';
-import { createRootEpic } from './epic';
 import type { AppAction } from './actions';
 import type { Immutable } from '../../../common/endpoint/types';
 import type { State } from './types';
@@ -272,7 +270,6 @@ export const createStore = (
   const composeEnhancers = composeWithDevTools(enhancerOptions);
 
   const middlewareDependencies: TimelineEpicDependencies<State> = {
-    kibana$,
     selectAllTimelineQuery: inputsSelectors.globalQueryByIdSelector,
     timelineByIdSelector: timelineSelectors.timelineByIdSelector,
     timelineTimeRangeSelector: inputsSelectors.timelineTimeRangeSelector,
@@ -304,8 +301,6 @@ export const createStore = (
     state as PreloadedState<State>,
     composeEnhancers(middlewareEnhancer)
   );
-
-  epicMiddleware.run(createRootEpic<CombinedState<State>>());
 
   return store;
 };
