@@ -6,10 +6,7 @@
     "id": "securitySolution",
     "server": true,
     "browser": true,
-    "configPath": [
-      "xpack",
-      "securitySolution"
-    ],
+    "configPath": ["xpack", "securitySolution"],
     "requiredPlugins": [
       "actions",
       "alerting",
@@ -54,6 +51,7 @@
       "savedObjects",
       "savedSearch",
       "unifiedDocViewer",
+      "charts"
     ],
     "optionalPlugins": [
       "cloudExperiments",
@@ -81,8 +79,6 @@
       "ml",
       "unifiedSearch"
     ],
-    "extraPublicDirs": [
-      "common"
-    ]
+    "extraPublicDirs": ["common"]
   }
 }
