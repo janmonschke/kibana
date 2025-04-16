@@ -48,56 +48,25 @@ export class CasesIdIncrementerTaskManager {
                   this.logger.error('Missing increment service necessary for task');
                   return undefined;
                 }
-                // TODO: still needed?
-                // if (taskInstance.state?.namespaces) {
-                //   // Make sure namespaces are up to date in case of a server restart
-                //   // TODO: potentially only use task state
-                //   const stateNamespaces = taskInstance.state.namespaces;
-                //   const currentNamespaces = Array.from(this.namespaces);
-                //   this.namespaces = new Set([...stateNamespaces, ...currentNamespaces]);
-                // }
                 this.taskInstance = taskInstance;
                 const currentState = this.taskInstance.state as CasesIncrementIdTaskStateSchemaV1;
 
                 // For potential telemetry purposes
                 let initialCasesCountLackingId = 0;
 
-                // TODO: In the case of a server restart as well, we can end up in a scenario where new ID's have been applied,
-                // BUT HAVE NOT BEEN SAVED TO THE TASK STATE, SO THE BEST OPTION HERE MAY BE TO JUST RETRIEVE THE HIGHEST NUMBER
-                // FROM EACH SPACE rather than relying on state like the below code?
-
                 // const lastIdByNameSpace: Record<string, number> =
                 //   currentState.last_update.last_id_by_namespace ?? {};
 
-                // TODO: this is not a safe/fast way to do this, given that we might have more than 10k spaces
-                // instead, we should build up that
-                const lastIdByNameSpace = await this.casesIncrementService.getLastAppliedIdForSpace(
-                  Array.from(this.namespaces)
-                );
+                const casesWithoutIncrementalIdResponse =
+                  await this.casesIncrementService.getCasesWithoutIncrementalId();
 
-                // TODO: This step _could_ be parallelized, but would be additional unnecessary memory load
-                for await (const namespace of this.namespaces) {
-                  const casesWithoutIncrementalIdResponse =
-                    await this.casesIncrementService.getCasesWithoutIncrementalId();
-                  // TODO: why would we want to pass namespaces there ^?
-                  // namespaces: [namespace],
+                initialCasesCountLackingId =
+                  initialCasesCountLackingId + casesWithoutIncrementalIdResponse.total;
 
-                  initialCasesCountLackingId =
-                    initialCasesCountLackingId + casesWithoutIncrementalIdResponse.total;
+                const { saved_objects: casesWithoutIncrementalId } =
+                  casesWithoutIncrementalIdResponse;
 
-                  const initialLastAppliedId = lastIdByNameSpace[namespace];
-                  const latestIdToReinitializeWith = initialLastAppliedId
-                    ? initialLastAppliedId + 1
-                    : undefined;
-
-                  const { saved_objects: casesWithoutIncrementalId } =
-                    casesWithoutIncrementalIdResponse;
-
-                  // Option 1 - Update the values sequentially (much slower, but more reliable)
-                  await this.casesIncrementService.incrementCaseIdSequentially(
-                    casesWithoutIncrementalId
-                  );
-                }
+                await this.casesIncrementService.incrementCaseIds(casesWithoutIncrementalId);
 
                 const endTime = performance.now();
                 this.logger.info(`Increment id task ended at: ${new Date().toISOString()}`);
