@@ -124,7 +124,8 @@ export class CasesIncrementalIdService {
     }
 
     // If changes have been made, apply the changes to the counters
-    // TODO: we definitely need to clean this up, in case it fails. Probably in `getCaseIdIncrementerSo`
+    // These are done in sequence, since we cannot guarantee that `incIdSoCache` is small.
+    // It might have hundreds/thousands of SO objects cached that need updating.
     if (hasAppliedAnId) {
       for (const [namespace, incIdSo] of incIdSoCache) {
         await this.incrementCounterSO(incIdSo, incIdSo.attributes.next_id, namespace);
