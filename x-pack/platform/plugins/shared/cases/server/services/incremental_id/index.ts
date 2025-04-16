@@ -64,6 +64,10 @@ export class CasesIncrementalIdService {
     }
   }
 
+  /**
+   * Get the latest applied ID for a given space.
+   * Uses the actually applied numerical ids on cases in the space.
+   */
   public async getLastAppliedIdForSpace(namespace: string) {
     try {
       const casesResponse = await this.getCases({
@@ -74,19 +78,26 @@ export class CasesIncrementalIdService {
         perPage: 1, // We only need the most recent incremental id value
         page: 1,
       });
-      if (casesResponse.total === 0) return 0;
+
+      if (casesResponse.total === 0) {
+        return 0;
+      }
+
       const mostRecentIncrementalId =
         casesResponse.saved_objects[0].attributes.incremental_id?.numerical_id;
-      if (mostRecentIncrementalId !== casesResponse.total) {
-        throw new Error('Mismatch between incremental id and case count');
-      }
+
+      // TODO: should we really throw here?
+      // There might be gaps because of deleted cases.
+      // if (mostRecentIncrementalId !== casesResponse.total) {
+      //   throw new Error('Mismatch between incremental id and case count');
+      // }
       return mostRecentIncrementalId;
     } catch (error) {
       this.logger.error(error);
     }
   }
 
-  public async incrementCaseIdSequentially(
+  public async incrementCaseIds(
     casesWithoutIncrementalId: Array<SavedObjectsFindResult<CasePersistedAttributes>>
   ) {
     /** In-memory cache of the incremental ID SO changes that we will need to apply */
