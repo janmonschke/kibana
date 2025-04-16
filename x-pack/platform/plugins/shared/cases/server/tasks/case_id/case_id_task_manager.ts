@@ -71,7 +71,7 @@ export class CasesIdIncrementerTaskManager {
 
                 // TODO: this is not a safe/fast way to do this, given that we might have more than 10k spaces
                 // instead, we should build up that
-                const lastIdByNameSpace = await this.casesIncrementService.getLastAppliedIdPerSpace(
+                const lastIdByNameSpace = await this.casesIncrementService.getLastAppliedIdForSpace(
                   Array.from(this.namespaces)
                 );
 
@@ -95,9 +95,7 @@ export class CasesIdIncrementerTaskManager {
 
                   // Option 1 - Update the values sequentially (much slower, but more reliable)
                   await this.casesIncrementService.incrementCaseIdSequentially(
-                    casesWithoutIncrementalId,
-                    namespace,
-                    latestIdToReinitializeWith
+                    casesWithoutIncrementalId
                   );
                 }
 

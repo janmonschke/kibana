@@ -4,10 +4,7 @@
  * 2.0; you may not use this file except in compliance with the Elastic License
  * 2.0.
  */
-import * as rt from 'io-ts';
 
-export const CaseIdIncrementerAttributesRt = rt.strict({
-  '@timestamp': rt.number,
-  updated_at: rt.number,
-  next_id: rt.number,
-});
+export { modelVersion1 } from './model_version_1';
+export { modelVersion2 } from './model_version_2';
+export { modelVersion3 } from './model_version_3';
