@@ -9,5 +9,5 @@ import * as rt from 'io-ts';
 export const CaseIdIncrementerAttributesRt = rt.strict({
   '@timestamp': rt.number,
   updated_at: rt.number,
-  next_id: rt.number,
+  last_id: rt.number,
 });

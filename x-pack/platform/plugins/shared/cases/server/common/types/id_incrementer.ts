@@ -10,7 +10,7 @@ import { CaseIdIncrementerAttributesRt } from '../../../common/types/domain/incr
 
 export interface CaseIdIncrementerPersistedAttributes {
   '@timestamp': number;
-  next_id: number;
+  last_id: number;
   updated_at: number;
 }
 

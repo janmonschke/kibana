@@ -113,9 +113,9 @@ export class CasesIncrementalIdService {
         }
 
         // Increase the next id
-        const newId = incIdSo.attributes.next_id + 1;
+        const newId = incIdSo.attributes.last_id + 1;
         await this.applyIncrementalIdToCaseSo(caseSo, newId, namespaceOfCase);
-        incIdSo.attributes.next_id = newId;
+        incIdSo.attributes.last_id = newId;
         hasAppliedAnId = true;
       } catch (error) {
         this.logger.error(`ID incrementing paused due to error: ${error}`);
@@ -128,7 +128,7 @@ export class CasesIncrementalIdService {
     // It might have hundreds/thousands of SO objects cached that need updating.
     if (hasAppliedAnId) {
       for (const [namespace, incIdSo] of incIdSoCache) {
-        await this.incrementCounterSO(incIdSo, incIdSo.attributes.next_id, namespace);
+        await this.incrementCounterSO(incIdSo, incIdSo.attributes.last_id, namespace);
       }
     }
   }
@@ -141,8 +141,6 @@ export class CasesIncrementalIdService {
     namespace: string
   ): Promise<SavedObject<CaseIdIncrementerPersistedAttributes>> {
     try {
-      // NEXT: if latestAppliedId is larger than what's in the case incrementer SO (because we failed to update it), make sure to update it
-      // NEXT: change `next_id` to `latest_id`
       const latestAppliedId = (await this.getLastAppliedIdForSpace(namespace)) || 0;
       const incrementerResponse =
         await this.internalSavedObjectsClient.find<CaseIdIncrementerPersistedAttributes>({
@@ -164,14 +162,14 @@ export class CasesIncrementalIdService {
       }
 
       // Only one incrementer SO exists
-      if (incrementerResponse.total === 1 && incrementerSO.attributes.next_id) {
+      if (incrementerResponse.total === 1 && incrementerSO.attributes.last_id) {
         // If we have matching incremental ids, we're good
-        const idsMatch = latestAppliedId === incrementerSO.attributes.next_id;
+        const idsMatch = latestAppliedId === incrementerSO.attributes.last_id;
         if (idsMatch) {
           return incrementerResponse?.saved_objects[0];
         } else {
           // Otherwise, we're updating the incrementer SO to the highest value
-          const newId = Math.max(latestAppliedId, incrementerSO.attributes.next_id);
+          const newId = Math.max(latestAppliedId, incrementerSO.attributes.last_id);
           return this.incrementCounterSO(incrementerSO, newId, namespace);
         }
       }
@@ -197,7 +195,7 @@ export class CasesIncrementalIdService {
           if (!maxIncrementer) {
             return currIncrementer;
           } else {
-            return currIncrementer.attributes.next_id > maxIncrementer.attributes.next_id
+            return currIncrementer.attributes.last_id > maxIncrementer.attributes.last_id
               ? currIncrementer
               : maxIncrementer;
           }
@@ -213,7 +211,7 @@ export class CasesIncrementalIdService {
 
     // If a max incrementer exists, update it with the max value found
     if (incrementerWithHighestId) {
-      const newId = Math.max(latestAppliedId, incrementerWithHighestId.attributes.next_id);
+      const newId = Math.max(latestAppliedId, incrementerWithHighestId.attributes.last_id);
       return this.incrementCounterSO(incrementerWithHighestId, newId, namespace);
     } else {
       // If there is no max incrementer, create a new one
@@ -232,7 +230,7 @@ export class CasesIncrementalIdService {
         await this.internalSavedObjectsClient.create<CaseIdIncrementerPersistedAttributes>(
           CASE_ID_INCREMENTER_SAVED_OBJECT,
           {
-            next_id: 0,
+            last_id: 0,
             '@timestamp': currentTime,
             updated_at: currentTime,
           },
@@ -254,7 +252,7 @@ export class CasesIncrementalIdService {
   ): Promise<SavedObject<CaseIdIncrementerPersistedAttributes>> {
     try {
       const updatedAttributes = {
-        next_id: lastAppliedId + 1,
+        last_id: lastAppliedId,
         updated_at: new Date().getTime(),
       };
       await this.internalSavedObjectsClient.update<CaseIdIncrementerPersistedAttributes>(

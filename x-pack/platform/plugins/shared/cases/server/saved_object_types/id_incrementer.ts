@@ -19,7 +19,7 @@ export const caseIdIncrementerSavedObjectType: SavedObjectsType = {
   mappings: {
     dynamic: false,
     properties: {
-      next_id: {
+      last_id: {
         type: 'keyword',
       },
       '@timestamp': {
