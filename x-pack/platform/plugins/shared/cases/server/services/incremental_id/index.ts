@@ -98,14 +98,31 @@ export class CasesIncrementalIdService {
   }
 
   public async incrementCaseIds(
-    casesWithoutIncrementalId: Array<SavedObjectsFindResult<CasePersistedAttributes>>
+    casesWithoutIncrementalId: Array<SavedObjectsFindResult<CasePersistedAttributes>>,
+    maxDurationMs = 10 * 60 * 1000
   ) {
     /** In-memory cache of the incremental ID SO changes that we will need to apply */
     const incIdSoCache: Map<string, SavedObject<CaseIdIncrementerPersistedAttributes>> = new Map();
 
     let hasAppliedAnId = false;
+    const startTime = Date.now();
+
     for (let index = 0; index < casesWithoutIncrementalId.length; index++) {
       try {
+        const elapsedTime = Date.now() - startTime;
+
+        // Stop processing if we've exceeded the max duration.
+        // We will still sync the incIdSoCache at the end.
+        if (elapsedTime > maxDurationMs) {
+          const progress = (index + 1 / casesWithoutIncrementalId.length) * 100;
+          this.logger.warn(
+            `Stopping ID incrementing due to time limit. Processed ${progress.toFixed(
+              2
+            )}% of cases.`
+          );
+          break;
+        }
+
         const caseSo = casesWithoutIncrementalId[index];
         const namespaceOfCase = caseSo.namespaces?.[0];
         if (!namespaceOfCase) {
