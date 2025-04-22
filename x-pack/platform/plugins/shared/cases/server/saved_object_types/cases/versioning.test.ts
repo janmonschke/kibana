@@ -13,8 +13,6 @@ import {
 } from '@kbn/core-test-helpers-model-versions';
 import { loggerMock } from '@kbn/logging-mocks';
 import { createCaseSavedObjectResponse } from '../../services/test_utils';
-import type { CasePersistedAttributes } from '../../common/types/case';
-import type { SavedObject } from '@kbn/core/server';
 
 const mockLogger = loggerMock.create();
 const mockCoreSetup = coreMock.createSetup();
