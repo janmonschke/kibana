@@ -47,7 +47,7 @@ import { registerCaseFileKinds } from './files';
 import type { ConfigType } from './config';
 import { registerConnectorTypes } from './connectors';
 import { registerSavedObjects } from './saved_object_types';
-import { CasesIdIncrementerTask } from './tasks/incremental_id';
+import { CaseIdIncrementerTaskManager } from './tasks/case_id/case_id_task_manager';
 
 export class CasePlugin
   implements
@@ -67,7 +67,7 @@ export class CasePlugin
   private persistableStateAttachmentTypeRegistry: PersistableStateAttachmentTypeRegistry;
   private externalReferenceAttachmentTypeRegistry: ExternalReferenceAttachmentTypeRegistry;
   private userProfileService: UserProfileService;
-  private casesIdIncrementerTask: CasesIdIncrementerTask;
+  private casesIdIncrementerTaskManager?: CaseIdIncrementerTaskManager;
 
   constructor(private readonly initializerContext: PluginInitializerContext) {
     this.caseConfig = initializerContext.config.get<ConfigType>();
@@ -86,7 +86,7 @@ export class CasePlugin
       )}] and plugins [${Object.keys(plugins)}]`
     );
 
-    this.casesIdIncrementerTask = new CasesIdIncrementerTask(plugins, this.logger);
+    this.casesIdIncrementerTaskManager = new CaseIdIncrementerTaskManager(plugins, this.logger);
 
     registerInternalAttachments(
       this.externalReferenceAttachmentTypeRegistry,
@@ -192,7 +192,7 @@ export class CasePlugin
 
     if (plugins.taskManager) {
       scheduleCasesTelemetryTask(plugins.taskManager, this.logger);
-      this.casesIdIncrementerTask?.scheduleIncrementIdTask(plugins.taskManager, core);
+      this.casesIdIncrementerTaskManager?.scheduleIncrementIdTask(plugins.taskManager, core);
     }
 
     this.userProfileService.initialize({

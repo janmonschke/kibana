@@ -16,7 +16,7 @@ export const CASES_INCREMENTAL_ID_SYNC_TASK_ID = `Cases:${CASES_INCREMENTAL_ID_S
 export const CasesIncrementIdTaskVersion = '1.0.0';
 const CASES_INCREMENTAL_ID_SYNC_INTERVAL_DEFAULT = '1m';
 
-export class CasesIdIncrementerTaskManager {
+export class CaseIdIncrementerTaskManager {
   private logger: Logger;
   private casesIncrementService?: CasesIncrementalIdService;
 
