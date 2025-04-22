@@ -21,7 +21,7 @@ export const modelVersion3: SavedObjectsModelVersion = {
             space_id: {
               type: 'keyword',
             },
-            numercial_id: {
+            numerical_id: {
               type: 'integer',
             },
           },

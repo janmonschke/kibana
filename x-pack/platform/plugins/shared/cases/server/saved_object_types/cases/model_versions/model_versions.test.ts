@@ -60,25 +60,25 @@ describe('Model versions', () => {
   describe('version 2', () => {
     it('returns version 2 changes correctly', () => {
       expect(modelVersion2.changes).toMatchInlineSnapshot(`
-      Array [
-        Object {
-          "addedMappings": Object {
-            "observables": Object {
-              "properties": Object {
-                "typeKey": Object {
-                  "type": "keyword",
+              Array [
+                Object {
+                  "addedMappings": Object {
+                    "observables": Object {
+                      "properties": Object {
+                        "typeKey": Object {
+                          "type": "keyword",
+                        },
+                        "value": Object {
+                          "type": "keyword",
+                        },
+                      },
+                      "type": "nested",
+                    },
+                  },
+                  "type": "mappings_addition",
                 },
-                "value": Object {
-                  "type": "keyword",
-                },
-              },
-              "type": "nested",
-            },
-          },
-          "type": "mappings_addition",
-        },
-      ]
-    `);
+              ]
+          `);
     });
   });
 
@@ -90,11 +90,11 @@ describe('Model versions', () => {
             "addedMappings": Object {
               "incremental_id": Object {
                 "properties": Object {
+                  "numerical_id": Object {
+                    "type": "integer",
+                  },
                   "space_id": Object {
                     "type": "keyword",
-                  },
-                  "numercial_id": Object {
-                    "type": "integer",
                   },
                 },
               },
