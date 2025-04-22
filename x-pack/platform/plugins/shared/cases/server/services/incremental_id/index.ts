@@ -109,11 +109,11 @@ export class CasesIncrementalIdService {
 
     for (let index = 0; index < casesWithoutIncrementalId.length; index++) {
       try {
-        const elapsedTime = Date.now() - startTime;
+        const elapsedTimeMs = Date.now() - startTime;
 
         // Stop processing if we've exceeded the max duration.
         // We will still sync the incIdSoCache at the end.
-        if (elapsedTime > maxDurationMs) {
+        if (elapsedTimeMs > maxDurationMs) {
           const progress = (index + 1 / casesWithoutIncrementalId.length) * 100;
           this.logger.warn(
             `Stopping ID incrementing due to time limit. Processed ${progress.toFixed(
@@ -126,12 +126,10 @@ export class CasesIncrementalIdService {
         const caseSo = casesWithoutIncrementalId[index];
         const namespaceOfCase = caseSo.namespaces?.[0];
         if (!namespaceOfCase) {
-          this.logger.info(`Case ${caseSo.id} has no namespace assigned. Skipping it.`);
+          this.logger.error(`Case ${caseSo.id} has no namespace assigned. Skipping it.`);
           // eslint-disable-next-line no-continue
           continue;
         }
-        // TODO: remove the next line
-        this.logger.info(`Case namespace: ${namespaceOfCase}`);
 
         // Get the incremental id SO from the cache or fetch it
         let incIdSo = incIdSoCache.get(namespaceOfCase);
@@ -140,9 +138,11 @@ export class CasesIncrementalIdService {
           incIdSoCache.set(namespaceOfCase, incIdSo);
         }
 
-        // Increase the next id
+        // Increase the inc id
         const newId = incIdSo.attributes.last_id + 1;
+        // Apply the new ID to the case
         await this.applyIncrementalIdToCaseSo(caseSo, newId, namespaceOfCase);
+        // Apply the new ID to the local incrementer SO, it will persist later
         incIdSo.attributes.last_id = newId;
         hasAppliedAnId = true;
       } catch (error) {
@@ -169,7 +169,9 @@ export class CasesIncrementalIdService {
     namespace: string
   ): Promise<SavedObject<CaseIdIncrementerPersistedAttributes>> {
     try {
+      // Get the latest applied id by looking at the case saved objects
       const latestAppliedId = (await this.getLastAppliedIdForSpace(namespace)) || 0;
+      // Get the case id incrementer saved object
       const incrementerResponse =
         await this.internalSavedObjectsClient.find<CaseIdIncrementerPersistedAttributes>({
           type: CASE_ID_INCREMENTER_SAVED_OBJECT,
