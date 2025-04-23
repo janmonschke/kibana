@@ -80,11 +80,15 @@ export class CasesIncrementalIdService {
       });
 
       if (casesResponse.total === 0) {
+        this.logger.debug(`No cases found with incremental id in ${namespace}`);
         return 0;
       }
 
       const mostRecentIncrementalId =
         casesResponse.saved_objects[0].attributes.incremental_id?.numerical_id;
+      this.logger.debug(
+        `getLastAppliedIdForSpace (from cases): Most recent incremental id in ${namespace}: ${mostRecentIncrementalId}`
+      );
 
       // TODO: should we really throw here?
       // There might be gaps because of deleted cases.
@@ -134,7 +138,13 @@ export class CasesIncrementalIdService {
         // Get the incremental id SO from the cache or fetch it
         let incIdSo = incIdSoCache.get(namespaceOfCase);
         if (!incIdSo) {
+          this.logger.debug(
+            `Don't have incrementer in cache, fetching it: namespace ${namespaceOfCase}`
+          );
           incIdSo = await this.getOrCreateCaseIdIncrementerSo(namespaceOfCase);
+          this.logger.debug(
+            `Fetched incrementer SO for ${namespaceOfCase}: ${JSON.stringify(incIdSo)}`
+          );
           incIdSoCache.set(namespaceOfCase, incIdSo);
         }
 
@@ -171,6 +181,7 @@ export class CasesIncrementalIdService {
     try {
       // Get the latest applied id by looking at the case saved objects
       const latestAppliedId = (await this.getLastAppliedIdForSpace(namespace)) || 0;
+      this.logger.debug(`Latest applied ID to a case for ${namespace}: ${latestAppliedId}`);
       // Get the case id incrementer saved object
       const incrementerResponse =
         await this.internalSavedObjectsClient.find<CaseIdIncrementerPersistedAttributes>({
@@ -196,9 +207,15 @@ export class CasesIncrementalIdService {
         // If we have matching incremental ids, we're good
         const idsMatch = latestAppliedId === incrementerSO.attributes.last_id;
         if (idsMatch) {
+          this.logger.debug(
+            `Incrementer found for ${namespace} with matching id ${latestAppliedId}. No changes needed.`
+          );
           return incrementerResponse?.saved_objects[0];
         } else {
           // Otherwise, we're updating the incrementer SO to the highest value
+          this.logger.debug(
+            `Incrementer found for ${namespace} with id ${incrementerSO.attributes.last_id}. Updating to ${latestAppliedId}.`
+          );
           const newId = Math.max(latestAppliedId, incrementerSO.attributes.last_id);
           return this.incrementCounterSO(incrementerSO, newId, namespace);
         }
@@ -207,6 +224,7 @@ export class CasesIncrementalIdService {
       throw new Error(`Unable to use an existing incrementer: ${error}`);
     }
     // At this point we assume that no incrementer SO exists
+    this.logger.debug(`No incrementer found for ${namespace}. Creating a new one.`);
     return this.createCaseIdIncrementerSo(namespace);
   }
 
@@ -244,6 +262,9 @@ export class CasesIncrementalIdService {
       const newId = Math.max(latestAppliedId, incrementerWithHighestId.attributes.last_id);
       return this.incrementCounterSO(incrementerWithHighestId, newId, namespace);
     } else {
+      this.logger.debug(
+        `ResolveMultipleIncrementers: No incrementer found for ${namespace}. Creating a new one.`
+      );
       // If there is no max incrementer, create a new one
       return this.createCaseIdIncrementerSo(namespace);
     }
@@ -270,7 +291,7 @@ export class CasesIncrementalIdService {
         );
       return intializedIncrementalIdSo;
     } catch (error) {
-      this.logger.error(error);
+      this.logger.error(`Unable to create incrementer due to error: ${error}`);
       throw error;
     }
   }
