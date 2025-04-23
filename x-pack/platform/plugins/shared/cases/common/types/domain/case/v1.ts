@@ -59,6 +59,7 @@ export const CaseIncrementalId = rt.union([
     numerical_id: rt.number,
   }),
   rt.null,
+  rt.undefined,
 ]);
 
 const CaseBaseFields = {
