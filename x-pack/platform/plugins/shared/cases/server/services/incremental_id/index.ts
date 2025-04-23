@@ -73,7 +73,7 @@ export class CasesIncrementalIdService {
       const casesResponse = await this.getCases({
         filter: CasesIncrementalIdService.incrementalIdExistsFilter,
         namespaces: [namespace],
-        sortField: 'attributes.incremental_id.numerical_id',
+        sortField: 'incremental_id.numerical_id',
         sortOrder: 'desc',
         perPage: 1, // We only need the most recent incremental id value
         page: 1,
