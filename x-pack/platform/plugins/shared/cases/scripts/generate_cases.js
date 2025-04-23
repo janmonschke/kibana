@@ -87,42 +87,6 @@ const createCase = (counter, owner) => ({
   customFields: [],
 });
 
-const getAlwaysFiringRuleWithCaseAction = (counter) => ({
-  tags: [],
-  params: {
-    instances: 30,
-  },
-  schedule: {
-    interval: '1m',
-  },
-  consumer: 'alerts',
-  name: `Always firing rule: ${counter}`,
-  rule_type_id: 'example.always-firing',
-  actions: [
-    {
-      group: 'small',
-      id: 'system-connector-.cases',
-      params: {
-        subActionParams: {
-          timeWindow: '7d',
-          reopenClosedCases: false,
-          groupingBy: [],
-          templateId: null,
-        },
-        subAction: 'run',
-      },
-      frequency: {
-        notify_when: 'onActionGroupChange',
-        throttle: null,
-        summary: false,
-      },
-    },
-  ],
-  alert_delay: {
-    active: 1,
-  },
-});
-
 const generateCases = async (cases, space) => {
   try {
     console.log(`Creating ${cases.length} cases in ${space ? `space: ${space}` : 'default space'}`);
@@ -139,26 +103,6 @@ const generateCases = async (cases, space) => {
         return makeRequest({ options, data: theCase });
       },
       { concurrency: 100 }
-    );
-  } catch (error) {
-    console.log(error);
-  }
-};
-
-const generateRules = async (cases) => {
-  try {
-    await pMap(
-      cases,
-      (theCase) => {
-        const options = {
-          ...getHostAndPort(),
-          path: '/api/alerting/rule',
-          method: 'POST',
-        };
-
-        return makeRequest({ options, data: theCase });
-      },
-      { concurrency: 10 }
     );
   } catch (error) {
     console.log(error);
