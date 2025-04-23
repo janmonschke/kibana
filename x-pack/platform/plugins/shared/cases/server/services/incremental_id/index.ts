@@ -290,7 +290,6 @@ export class CasesIncrementalIdService {
         incrementerSo.id,
         updatedAttributes,
         {
-          version: incrementerSo.version,
           namespace,
         }
       );
