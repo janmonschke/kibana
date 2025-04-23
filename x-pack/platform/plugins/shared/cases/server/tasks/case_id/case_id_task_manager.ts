@@ -29,8 +29,6 @@ export class CaseIdIncrementerTaskManager {
         [CASES_INCREMENTAL_ID_SYNC_TASK_TYPE]: {
           title: 'Cases Numerical ID assignment',
           description: 'Applying incremental numeric ids to cases',
-          // In order to ensure sequential id assignments, there can only every be one task running at a time
-          maxConcurrency: 1,
           createTaskRunner: () => {
             return {
               run: async () => {
