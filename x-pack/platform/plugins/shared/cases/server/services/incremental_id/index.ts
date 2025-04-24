@@ -235,13 +235,14 @@ export class CasesIncrementalIdService {
           const newId = Math.max(actualLatestId, incrementerSO.attributes.last_id);
           return this.incrementCounterSO(incrementerSO, newId, namespace);
         }
+      } else {
+        // At this point we assume that no incrementer SO exists
+        this.logger.debug(`No incrementer found for ${namespace}. Creating a new one.`);
+        return this.createCaseIdIncrementerSo(namespace);
       }
     } catch (error) {
       throw new Error(`Unable to use an existing incrementer: ${error}`);
     }
-    // At this point we assume that no incrementer SO exists
-    this.logger.debug(`No incrementer found for ${namespace}. Creating a new one.`);
-    return this.createCaseIdIncrementerSo(namespace);
   }
 
   /**
@@ -253,19 +254,13 @@ export class CasesIncrementalIdService {
     namespace: string
   ) {
     // Find the incrementer with the highest ID
-    const incrementerWithHighestId =
-      incrementerQueryResponse.reduce<SavedObjectsFindResult<CaseIdIncrementerPersistedAttributes> | null>(
-        (maxIncrementer, currIncrementer) => {
-          if (!maxIncrementer) {
-            return currIncrementer;
-          } else {
-            return currIncrementer.attributes.last_id > maxIncrementer.attributes.last_id
-              ? currIncrementer
-              : maxIncrementer;
-          }
-        },
-        null
-      );
+    const incrementerWithHighestId = incrementerQueryResponse.reduce<
+      SavedObjectsFindResult<CaseIdIncrementerPersistedAttributes>
+    >((maxIncrementer, currIncrementer) => {
+      return currIncrementer.attributes.last_id > maxIncrementer.attributes.last_id
+        ? currIncrementer
+        : maxIncrementer;
+    }, incrementerQueryResponse[0]);
 
     // Gather the incrementers with lower ID values and delete them
     const incrementersToDelete = incrementerQueryResponse.filter(
@@ -275,14 +270,17 @@ export class CasesIncrementalIdService {
 
     // If a max incrementer exists, update it with the max value found
     if (incrementerWithHighestId) {
-      const newId = Math.max(latestAppliedId, incrementerWithHighestId.attributes.last_id);
-      return this.incrementCounterSO(incrementerWithHighestId, newId, namespace);
+      if (incrementerWithHighestId.attributes.last_id >= latestAppliedId) {
+        return incrementerWithHighestId;
+      } else {
+        return this.incrementCounterSO(incrementerWithHighestId, latestAppliedId, namespace);
+      }
     } else {
       this.logger.debug(
         `ResolveMultipleIncrementers: No incrementer found for ${namespace}. Creating a new one.`
       );
       // If there is no max incrementer, create a new one
-      return this.createCaseIdIncrementerSo(namespace);
+      return this.createCaseIdIncrementerSo(namespace, latestAppliedId);
     }
   }
 
@@ -290,14 +288,14 @@ export class CasesIncrementalIdService {
    * Creates a case id incrementer SO for the given namespace
    * @param namespace The namespace for the newly created case id incrementer SO
    */
-  public async createCaseIdIncrementerSo(namespace: string) {
+  public async createCaseIdIncrementerSo(namespace: string, lastId = 0) {
     try {
       const currentTime = new Date().getTime();
       const intializedIncrementalIdSo =
         await this.internalSavedObjectsClient.create<CaseIdIncrementerPersistedAttributes>(
           CASE_ID_INCREMENTER_SAVED_OBJECT,
           {
-            last_id: 0,
+            last_id: lastId,
             '@timestamp': currentTime,
             updated_at: currentTime,
           },

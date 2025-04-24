@@ -119,22 +119,58 @@ describe('CasesIncrementalIdService', () => {
       const result = await service.getOrCreateCaseIdIncrementerSo('random');
       expect(result.attributes.last_id).toBe(incIdLastId);
     });
+
+    it('should initiate the resolution of multiple inc ID SOs', async () => {
+      const lastId = 100;
+      const incIdSo = { attributes: { last_id: lastId } };
+      service.getLastAppliedIdForSpace = jest.fn().mockReturnValue(lastId);
+      service.getCaseIdIncrementerSo = jest.fn().mockReturnValue({
+        total: 2,
+        saved_objects: [incIdSo, incIdSo],
+      });
+      service.resolveMultipleIncrementerSO = jest.fn();
+      await service.getOrCreateCaseIdIncrementerSo('random');
+      expect(service.resolveMultipleIncrementerSO).toHaveBeenCalled();
+    });
   });
 
-  //   it('should throw an error if no last applied id is found', async () => {
-  //     const savedObjectsClient = {
-  //       find: jest.fn().mockResolvedValue({
-  //         saved_objects: [],
-  //       }),
-  //     } as unknown as SavedObjectsClientContract;
+  describe('resolveMultipleIncrementerSO', () => {
+    it('should return the correct incrementer SO', async () => {
+      const so1 = { attributes: { last_id: 10 } };
+      const so2 = { attributes: { last_id: 100 } };
+      const so3 = { attributes: { last_id: 1000 } };
+      const incrementerSOs = [so3, so1, so2];
 
-  //     // instantiate the service with a mocked savedObjectsClient and a mocked logger
-  //     const logger = { error: jest.fn(), debug: jest.fn() }; // mocked logger
-  //     const service = new CasesIncrementalIdService(savedObjectsClient, logger);
+      // @ts-expect-error: SO client types are not correct
+      const result = await service.resolveMultipleIncrementerSO(incrementerSOs, 20, 'default');
 
-  //     await expect(service.getLastAppliedIdForSpace('spaceId')).rejects.toThrow(
-  //       'No last applied id found for space spaceId'
-  //     );
-  //   });
-  // }
+      expect(savedObjectsClient.bulkDelete).toHaveBeenCalledWith([so1, so2]);
+      expect(result.attributes.last_id).toBe(so3.attributes.last_id);
+    });
+
+    it("should update the incrementer SO's count when `lastAppliedId` is bigger than it's `last_id`", async () => {
+      const so1 = { attributes: { last_id: 10 } };
+      const so2 = { attributes: { last_id: 100 } };
+      const so3 = { attributes: { last_id: 1000 } };
+      const incrementerSOs = [so3, so1, so2];
+
+      service.incrementCounterSO = jest.fn();
+
+      // @ts-expect-error: SO client types are not correct
+      await service.resolveMultipleIncrementerSO(incrementerSOs, 20000, 'default');
+
+      expect(service.incrementCounterSO).toHaveBeenCalledWith(so3, 20000, 'default');
+    });
+
+    it('should create a new incrementer SO when no max could be found', async () => {
+      const incrementerSOs: unknown = [];
+
+      service.createCaseIdIncrementerSo = jest.fn();
+
+      // @ts-expect-error: SO client types are not correct
+      await service.resolveMultipleIncrementerSO(incrementerSOs, 20000, 'default');
+
+      expect(service.createCaseIdIncrementerSo).toHaveBeenCalledWith('default', 20000);
+    });
+  });
 });
