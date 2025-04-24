@@ -7,8 +7,8 @@
 import type {
   SavedObjectsFindOptions,
   SavedObjectsFindResult,
-  SavedObjectsClient,
   SavedObject,
+  SavedObjectsClientContract,
 } from '@kbn/core/server';
 import { type Logger } from '@kbn/core/server';
 import pRetry from 'p-retry';
@@ -28,7 +28,10 @@ export class CasesIncrementalIdService {
   static incrementalIdExistsFilter = 'cases.attributes.incremental_id: *';
   static incrementalIdMissingFilter = 'not cases.attributes.incremental_id: *';
 
-  constructor(private internalSavedObjectsClient: SavedObjectsClient, private logger: Logger) {
+  constructor(
+    private internalSavedObjectsClient: SavedObjectsClientContract,
+    private logger: Logger
+  ) {
     this.logger = logger.get('incremental-id-service');
     this.logger.info('Cases incremental ID service initialized');
   }
@@ -40,12 +43,13 @@ export class CasesIncrementalIdService {
     });
   }
 
-  private async getCases({
+  public async getCases({
     filter,
     perPage = 10000,
     page = 1,
     sortOrder = 'asc',
     sortField = 'created_at',
+    namespaces = ['*'],
   }: GetCasesParameters) {
     try {
       const savedCases = await this.internalSavedObjectsClient.find<CasePersistedAttributes>({
@@ -55,7 +59,7 @@ export class CasesIncrementalIdService {
         perPage,
         page,
         filter,
-        namespaces: ['*'],
+        namespaces,
       });
       return savedCases;
     } catch (error) {
@@ -89,6 +93,10 @@ export class CasesIncrementalIdService {
       this.logger.debug(
         `getLastAppliedIdForSpace (from cases): Most recent incremental id in ${namespace}: ${mostRecentIncrementalId}`
       );
+
+      if (mostRecentIncrementalId === undefined || mostRecentIncrementalId === null) {
+        return 0;
+      }
 
       // TODO: should we really throw here?
       // There might be gaps because of deleted cases.
@@ -171,23 +179,31 @@ export class CasesIncrementalIdService {
     }
   }
 
+  getCaseIdIncrementerSo(namespace: string) {
+    return this.internalSavedObjectsClient.find<CaseIdIncrementerPersistedAttributes>({
+      type: CASE_ID_INCREMENTER_SAVED_OBJECT,
+      namespaces: [namespace],
+    });
+  }
+
   /**
    * Gets or creates the case id incrementer SO for the given namespace
    * @param namespace The namespace of the case id incrementor so
    */
-  private async getOrCreateCaseIdIncrementerSo(
+  async getOrCreateCaseIdIncrementerSo(
     namespace: string
   ): Promise<SavedObject<CaseIdIncrementerPersistedAttributes>> {
     try {
-      // Get the latest applied id by looking at the case saved objects
-      const latestAppliedId = (await this.getLastAppliedIdForSpace(namespace)) || 0;
+      const [latestAppliedId, incrementerResponse] = await Promise.all([
+        // Get the latest applied id by looking at the case saved objects
+        await this.getLastAppliedIdForSpace(namespace),
+        // Get the case id incrementer saved object
+        await this.getCaseIdIncrementerSo(namespace),
+      ]);
       this.logger.debug(`Latest applied ID to a case for ${namespace}: ${latestAppliedId}`);
-      // Get the case id incrementer saved object
-      const incrementerResponse =
-        await this.internalSavedObjectsClient.find<CaseIdIncrementerPersistedAttributes>({
-          type: CASE_ID_INCREMENTER_SAVED_OBJECT,
-          namespaces: [namespace],
-        });
+
+      const actualLatestId = latestAppliedId || 0;
+
       const incrementerSO = incrementerResponse?.saved_objects[0];
 
       // We should not have multiple incrementer SO's per namespace, but if we do, let's resolve that
@@ -197,7 +213,7 @@ export class CasesIncrementalIdService {
         );
         return this.resolveMultipleIncrementerSO(
           incrementerResponse.saved_objects,
-          latestAppliedId,
+          actualLatestId,
           namespace
         );
       }
@@ -205,18 +221,18 @@ export class CasesIncrementalIdService {
       // Only one incrementer SO exists
       if (incrementerResponse.total === 1 && incrementerSO.attributes.last_id) {
         // If we have matching incremental ids, we're good
-        const idsMatch = latestAppliedId === incrementerSO.attributes.last_id;
+        const idsMatch = actualLatestId === incrementerSO.attributes.last_id;
         if (idsMatch) {
           this.logger.debug(
-            `Incrementer found for ${namespace} with matching id ${latestAppliedId}. No changes needed.`
+            `Incrementer found for ${namespace} with matching id ${actualLatestId}. No changes needed.`
           );
-          return incrementerResponse?.saved_objects[0];
+          return incrementerSO;
         } else {
           // Otherwise, we're updating the incrementer SO to the highest value
           this.logger.debug(
-            `Incrementer found for ${namespace} with id ${incrementerSO.attributes.last_id}. Updating to ${latestAppliedId}.`
+            `Incrementer found for ${namespace} with id ${incrementerSO.attributes.last_id}. Updating to ${actualLatestId}.`
           );
-          const newId = Math.max(latestAppliedId, incrementerSO.attributes.last_id);
+          const newId = Math.max(actualLatestId, incrementerSO.attributes.last_id);
           return this.incrementCounterSO(incrementerSO, newId, namespace);
         }
       }
@@ -231,7 +247,7 @@ export class CasesIncrementalIdService {
   /**
    * Resolves the situation when multiple incrementer SOs exists
    */
-  private async resolveMultipleIncrementerSO(
+  public async resolveMultipleIncrementerSO(
     incrementerQueryResponse: Array<SavedObjectsFindResult<CaseIdIncrementerPersistedAttributes>>,
     latestAppliedId: number,
     namespace: string
@@ -274,7 +290,7 @@ export class CasesIncrementalIdService {
    * Creates a case id incrementer SO for the given namespace
    * @param namespace The namespace for the newly created case id incrementer SO
    */
-  private async createCaseIdIncrementerSo(namespace: string) {
+  public async createCaseIdIncrementerSo(namespace: string) {
     try {
       const currentTime = new Date().getTime();
       const intializedIncrementalIdSo =
@@ -296,7 +312,7 @@ export class CasesIncrementalIdService {
     }
   }
 
-  private async incrementCounterSO(
+  public async incrementCounterSO(
     incrementerSo: CaseIdIncrementerSavedObject,
     lastAppliedId: number,
     namespace: string
@@ -330,7 +346,7 @@ export class CasesIncrementalIdService {
     }
   }
 
-  private async applyIncrementalIdToCaseSo(
+  public async applyIncrementalIdToCaseSo(
     currentCaseSo: SavedObjectsFindResult<CasePersistedAttributes>,
     newIncrementalId: number,
     namespace: string
