@@ -177,4 +177,108 @@ describe('CasesIncrementalIdService', () => {
       expect(service.createCaseIdIncrementerSo).toHaveBeenCalledWith('default', 20000);
     });
   });
+
+  describe('incrementCaseIds', () => {
+    function getTestCases() {
+      return [
+        { attributes: {}, namespaces: ['default'] },
+        { attributes: {}, namespaces: ['second-life'] },
+        { attributes: {}, namespaces: ['second-life'] },
+        { attributes: {}, namespaces: ['default'] },
+        { attributes: {}, namespaces: ['second-life'] },
+      ];
+    }
+    let cases: ReturnType<typeof getTestCases> = [];
+    const defaultIncIdSo = { attributes: { last_id: 100 } };
+    const secondLifeIncIdSo = { attributes: { last_id: 10 } };
+
+    beforeEach(() => {
+      cases = getTestCases();
+      service.getOrCreateCaseIdIncrementerSo = jest.fn().mockImplementation((namespace) => {
+        switch (namespace) {
+          case 'default':
+            return defaultIncIdSo;
+          case 'second-life':
+            return secondLifeIncIdSo;
+        }
+      });
+      // mock out persistence, their logic is tested individually
+      service.applyIncrementalIdToCaseSo = jest.fn().mockResolvedValue(null);
+      service.incrementCounterSO = jest.fn().mockResolvedValue(null);
+    });
+
+    it('should increment the incremental case ids and inc id SOs correctly', async () => {
+      // @ts-expect-error: case SO types are not correct
+      await service.incrementCaseIds(cases);
+
+      // These calls need to be tested in order
+      expect(service.applyIncrementalIdToCaseSo).toHaveBeenNthCalledWith(
+        1,
+        cases[0],
+        101,
+        'default'
+      );
+      expect(service.applyIncrementalIdToCaseSo).toHaveBeenNthCalledWith(
+        2,
+        cases[1],
+        11,
+        'second-life'
+      );
+      expect(service.applyIncrementalIdToCaseSo).toHaveBeenNthCalledWith(
+        3,
+        cases[2],
+        12,
+        'second-life'
+      );
+      expect(service.applyIncrementalIdToCaseSo).toHaveBeenNthCalledWith(
+        4,
+        cases[3],
+        102,
+        'default'
+      );
+      expect(service.applyIncrementalIdToCaseSo).toHaveBeenNthCalledWith(
+        5,
+        cases[4],
+        13,
+        'second-life'
+      );
+
+      // For these, the order of calls does not matter
+      expect(service.incrementCounterSO).toHaveBeenCalledWith(defaultIncIdSo, 102, 'default');
+      expect(service.incrementCounterSO).toHaveBeenCalledWith(secondLifeIncIdSo, 13, 'second-life');
+    });
+
+    it('should stop processing when max duration has passed', async () => {
+      // @ts-expect-error: case SO types are not correct
+      await service.incrementCaseIds(cases, -1);
+      expect(service.applyIncrementalIdToCaseSo).not.toHaveBeenCalled();
+    });
+
+    it('should skip processing a case when it has no namespace attached', async () => {
+      // @ts-expect-error: case SO types are not correct
+      await service.incrementCaseIds([cases[0], cases[1], {}, cases[2]]);
+
+      // called 3 times, even though 4 SOs have been passed
+      expect(service.applyIncrementalIdToCaseSo).toHaveBeenCalledTimes(3);
+    });
+
+    it('should stop processing when it was not possible to get or create an incrementer SO', async () => {
+      service.getOrCreateCaseIdIncrementerSo = jest.fn().mockRejectedValue(null);
+
+      // @ts-expect-error: case SO types are not correct
+      await service.incrementCaseIds(cases);
+
+      expect(service.applyIncrementalIdToCaseSo).not.toHaveBeenCalled();
+    });
+
+    it('should stop processing when it was not possible to increment a case id', async () => {
+      service.applyIncrementalIdToCaseSo = jest.fn().mockRejectedValue(null);
+
+      // @ts-expect-error: case SO types are not correct
+      await service.incrementCaseIds(cases);
+
+      // Only called once, when it rejected
+      expect(service.applyIncrementalIdToCaseSo).toHaveBeenCalledTimes(1);
+    });
+  });
 });
