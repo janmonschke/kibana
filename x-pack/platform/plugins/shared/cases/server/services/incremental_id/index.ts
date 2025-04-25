@@ -106,6 +106,7 @@ export class CasesIncrementalIdService {
       return mostRecentIncrementalId;
     } catch (error) {
       this.logger.error(error);
+      throw error;
     }
   }
 
@@ -222,9 +223,9 @@ export class CasesIncrementalIdService {
       if (incrementerResponse.total === 1 && incrementerSO.attributes.last_id) {
         // If we have matching incremental ids, we're good
         const idsMatch = actualLatestId === incrementerSO.attributes.last_id;
-        if (idsMatch) {
+        if (idsMatch || incrementerSO.attributes.last_id >= actualLatestId) {
           this.logger.debug(
-            `Incrementer found for ${namespace} with matching id ${actualLatestId}. No changes needed.`
+            `Incrementer found for ${namespace} with matching or bigger id. No changes needed.`
           );
           return incrementerSO;
         } else {
@@ -232,8 +233,7 @@ export class CasesIncrementalIdService {
           this.logger.debug(
             `Incrementer found for ${namespace} with id ${incrementerSO.attributes.last_id}. Updating to ${actualLatestId}.`
           );
-          const newId = Math.max(actualLatestId, incrementerSO.attributes.last_id);
-          return this.incrementCounterSO(incrementerSO, newId, namespace);
+          return this.incrementCounterSO(incrementerSO, actualLatestId, namespace);
         }
       } else {
         // At this point we assume that no incrementer SO exists

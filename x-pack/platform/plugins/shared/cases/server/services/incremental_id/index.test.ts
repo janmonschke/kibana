@@ -94,7 +94,7 @@ describe('CasesIncrementalIdService', () => {
       expect(result).toStrictEqual(incIdSo);
     });
 
-    it('should increase `last_id` in case the last applied ID to a case is higher than in the inc ID SO', async () => {
+    it('should increase and persist `last_id` in case the last applied ID to a case is higher than in the inc ID SO', async () => {
       const incIdLastId = 100;
       const lastAppliedId = 5610;
       const incIdSo = { attributes: { last_id: incIdLastId } };
@@ -103,11 +103,13 @@ describe('CasesIncrementalIdService', () => {
         total: 1,
         saved_objects: [incIdSo],
       });
+      service.incrementCounterSO = jest.fn().mockImplementation(service.incrementCounterSO);
       const result = await service.getOrCreateCaseIdIncrementerSo('random');
       expect(result.attributes.last_id).toBe(lastAppliedId);
+      expect(service.incrementCounterSO).toHaveBeenCalledWith(incIdSo, lastAppliedId, 'random');
     });
 
-    it('should not increase `last_id` in case the last applied ID to a case is lower than in the inc ID SO', async () => {
+    it('should not increase `last_id` and not persist in case the last applied ID to a case is lower than in the inc ID SO', async () => {
       const incIdLastId = 200;
       const lastAppliedId = 100;
       const incIdSo = { attributes: { last_id: incIdLastId } };
@@ -116,8 +118,10 @@ describe('CasesIncrementalIdService', () => {
         total: 1,
         saved_objects: [incIdSo],
       });
+      service.incrementCounterSO = jest.fn().mockImplementation(service.incrementCounterSO);
       const result = await service.getOrCreateCaseIdIncrementerSo('random');
       expect(result.attributes.last_id).toBe(incIdLastId);
+      expect(service.incrementCounterSO).not.toHaveBeenCalled();
     });
 
     it('should initiate the resolution of multiple inc ID SOs', async () => {
