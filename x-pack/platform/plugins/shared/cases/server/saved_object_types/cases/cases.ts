@@ -18,6 +18,7 @@ import type { CasePersistedAttributes } from '../../common/types/case';
 import { handleExport } from '../import_export/export';
 import { caseMigrations } from '../migrations';
 import { modelVersion1, modelVersion2, modelVersion3 } from './model_versions';
+import { handleImport } from '../import_export/import';
 
 export const createCaseSavedObjectType = (
   coreSetup: CoreSetup,
@@ -267,5 +268,6 @@ export const createCaseSavedObjectType = (
       context: SavedObjectsExportTransformContext,
       objects: Array<SavedObject<CasePersistedAttributes>>
     ) => handleExport({ context, objects, coreSetup, logger }),
+    onImport: handleImport,
   },
 });
