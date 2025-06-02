@@ -7,17 +7,12 @@
 import type {
   SavedObjectsFindOptions,
   SavedObjectsFindResult,
-  SavedObject,
   SavedObjectsClientContract,
 } from '@kbn/core/server';
 import { type Logger } from '@kbn/core/server';
 import pRetry from 'p-retry';
-import { CASE_SAVED_OBJECT, CASE_ID_INCREMENTER_SAVED_OBJECT } from '../../../common/constants';
+import { CASE_SAVED_OBJECT } from '../../../common/constants';
 import type { CasePersistedAttributes } from '../../common/types/case';
-import type {
-  CaseIdIncrementerPersistedAttributes,
-  CaseIdIncrementerSavedObject,
-} from '../../common/types/id_incrementer';
 
 type GetCasesParameters = Pick<
   SavedObjectsFindOptions,
@@ -114,10 +109,8 @@ export class CasesIncrementalIdService {
     casesWithoutIncrementalId: Array<SavedObjectsFindResult<CasePersistedAttributes>>,
     maxDurationMs = 10 * 60 * 1000
   ) {
-    /** In-memory cache of the incremental ID SO changes that we will need to apply */
-    const incIdSoCache: Map<string, SavedObject<CaseIdIncrementerPersistedAttributes>> = new Map();
-
-    let hasAppliedAnId = false;
+    /** In-memory cache of the incremental ID broken down by namespace */
+    const idByNamespace: Map<string, number> = new Map();
     const startTime = Date.now();
 
     for (let index = 0; index < casesWithoutIncrementalId.length; index++) {
@@ -144,203 +137,26 @@ export class CasesIncrementalIdService {
           continue;
         }
 
-        // Get the incremental id SO from the cache or fetch it
-        let incIdSo = incIdSoCache.get(namespaceOfCase);
-        if (!incIdSo) {
+        let actualLatestId = 0;
+        if (!idByNamespace.has(namespaceOfCase)) {
+          const latestAppliedId = await this.getLastAppliedIdForSpace(namespaceOfCase);
+          actualLatestId = latestAppliedId || 0;
           this.logger.debug(
-            `Don't have incrementer in cache, fetching it: namespace ${namespaceOfCase}`
+            `Latest applied ID to a case for ${namespaceOfCase}: ${latestAppliedId} (${actualLatestId})`
           );
-          incIdSo = await this.getOrCreateCaseIdIncrementerSo(namespaceOfCase);
-          this.logger.debug(
-            `Fetched incrementer SO for ${namespaceOfCase}: ${JSON.stringify(incIdSo)}`
-          );
-          incIdSoCache.set(namespaceOfCase, incIdSo);
+        } else {
+          actualLatestId = idByNamespace.get(namespaceOfCase) || 0;
         }
 
         // Increase the inc id
-        const newId = incIdSo.attributes.last_id + 1;
+        const newId = actualLatestId + 1;
         // Apply the new ID to the case
         await this.applyIncrementalIdToCaseSo(caseSo, newId, namespaceOfCase);
-        // Apply the new ID to the local incrementer SO, it will persist later
-        incIdSo.attributes.last_id = newId;
-        hasAppliedAnId = true;
+        idByNamespace.set(namespaceOfCase, newId);
       } catch (error) {
         this.logger.error(`ID incrementing paused due to error: ${error}`);
         break;
       }
-    }
-
-    // If changes have been made, apply the changes to the counters
-    // These are done in sequence, since we cannot guarantee that `incIdSoCache` is small.
-    // It might have hundreds/thousands of SO objects cached that need updating.
-    if (hasAppliedAnId) {
-      for (const [namespace, incIdSo] of incIdSoCache) {
-        await this.incrementCounterSO(incIdSo, incIdSo.attributes.last_id, namespace);
-      }
-    }
-  }
-
-  getCaseIdIncrementerSo(namespace: string) {
-    return this.internalSavedObjectsClient.find<CaseIdIncrementerPersistedAttributes>({
-      type: CASE_ID_INCREMENTER_SAVED_OBJECT,
-      namespaces: [namespace],
-    });
-  }
-
-  /**
-   * Gets or creates the case id incrementer SO for the given namespace
-   * @param namespace The namespace of the case id incrementor so
-   */
-  async getOrCreateCaseIdIncrementerSo(
-    namespace: string
-  ): Promise<SavedObject<CaseIdIncrementerPersistedAttributes>> {
-    try {
-      const [latestAppliedId, incrementerResponse] = await Promise.all([
-        // Get the latest applied id by looking at the case saved objects
-        await this.getLastAppliedIdForSpace(namespace),
-        // Get the case id incrementer saved object
-        await this.getCaseIdIncrementerSo(namespace),
-      ]);
-      this.logger.debug(`Latest applied ID to a case for ${namespace}: ${latestAppliedId}`);
-
-      const actualLatestId = latestAppliedId || 0;
-
-      const incrementerSO = incrementerResponse?.saved_objects[0];
-
-      // We should not have multiple incrementer SO's per namespace, but if we do, let's resolve that
-      if (incrementerResponse.total > 1) {
-        this.logger.error(
-          `Only 1 incrementer should exist, but multiple incrementers found in ${namespace}. Resolving to max incrementer.`
-        );
-        return this.resolveMultipleIncrementerSO(
-          incrementerResponse.saved_objects,
-          actualLatestId,
-          namespace
-        );
-      }
-
-      // Only one incrementer SO exists
-      if (incrementerResponse.total === 1 && incrementerSO.attributes.last_id) {
-        // If we have matching incremental ids, we're good
-        const idsMatch = actualLatestId === incrementerSO.attributes.last_id;
-        if (idsMatch || incrementerSO.attributes.last_id >= actualLatestId) {
-          this.logger.debug(
-            `Incrementer found for ${namespace} with matching or bigger id. No changes needed.`
-          );
-          return incrementerSO;
-        } else {
-          // Otherwise, we're updating the incrementer SO to the highest value
-          this.logger.debug(
-            `Incrementer found for ${namespace} with id ${incrementerSO.attributes.last_id}. Updating to ${actualLatestId}.`
-          );
-          return this.incrementCounterSO(incrementerSO, actualLatestId, namespace);
-        }
-      } else {
-        // At this point we assume that no incrementer SO exists
-        this.logger.debug(`No incrementer found for ${namespace}. Creating a new one.`);
-        return this.createCaseIdIncrementerSo(namespace);
-      }
-    } catch (error) {
-      throw new Error(`Unable to use an existing incrementer: ${error}`);
-    }
-  }
-
-  /**
-   * Resolves the situation when multiple incrementer SOs exists
-   */
-  public async resolveMultipleIncrementerSO(
-    incrementerQueryResponse: Array<SavedObjectsFindResult<CaseIdIncrementerPersistedAttributes>>,
-    latestAppliedId: number,
-    namespace: string
-  ) {
-    // Find the incrementer with the highest ID
-    const incrementerWithHighestId = incrementerQueryResponse.reduce<
-      SavedObjectsFindResult<CaseIdIncrementerPersistedAttributes>
-    >((maxIncrementer, currIncrementer) => {
-      return currIncrementer.attributes.last_id > maxIncrementer.attributes.last_id
-        ? currIncrementer
-        : maxIncrementer;
-    }, incrementerQueryResponse[0]);
-
-    // Gather the incrementers with lower ID values and delete them
-    const incrementersToDelete = incrementerQueryResponse.filter(
-      (incrementer) => incrementer !== incrementerWithHighestId
-    );
-    await this.internalSavedObjectsClient.bulkDelete(incrementersToDelete);
-
-    // If a max incrementer exists, update it with the max value found
-    if (incrementerWithHighestId) {
-      if (incrementerWithHighestId.attributes.last_id >= latestAppliedId) {
-        return incrementerWithHighestId;
-      } else {
-        return this.incrementCounterSO(incrementerWithHighestId, latestAppliedId, namespace);
-      }
-    } else {
-      this.logger.debug(
-        `ResolveMultipleIncrementers: No incrementer found for ${namespace}. Creating a new one.`
-      );
-      // If there is no max incrementer, create a new one
-      return this.createCaseIdIncrementerSo(namespace, latestAppliedId);
-    }
-  }
-
-  /**
-   * Creates a case id incrementer SO for the given namespace
-   * @param namespace The namespace for the newly created case id incrementer SO
-   */
-  public async createCaseIdIncrementerSo(namespace: string, lastId = 0) {
-    try {
-      const currentTime = new Date().getTime();
-      const intializedIncrementalIdSo =
-        await this.internalSavedObjectsClient.create<CaseIdIncrementerPersistedAttributes>(
-          CASE_ID_INCREMENTER_SAVED_OBJECT,
-          {
-            last_id: lastId,
-            '@timestamp': currentTime,
-            updated_at: currentTime,
-          },
-          {
-            namespace,
-          }
-        );
-      return intializedIncrementalIdSo;
-    } catch (error) {
-      this.logger.error(`Unable to create incrementer due to error: ${error}`);
-      throw error;
-    }
-  }
-
-  public async incrementCounterSO(
-    incrementerSo: CaseIdIncrementerSavedObject,
-    lastAppliedId: number,
-    namespace: string
-  ): Promise<SavedObject<CaseIdIncrementerPersistedAttributes>> {
-    try {
-      const updatedAttributes = {
-        last_id: lastAppliedId,
-        updated_at: new Date().getTime(),
-      };
-      await this.internalSavedObjectsClient.update<CaseIdIncrementerPersistedAttributes>(
-        CASE_ID_INCREMENTER_SAVED_OBJECT,
-        incrementerSo.id,
-        updatedAttributes,
-        {
-          namespace,
-        }
-      );
-
-      // Manually updating the SO here because `SavedObjectsClient.update`
-      // returns a type with a `Partial` of the SO's attributes.
-      return {
-        ...incrementerSo,
-        attributes: {
-          ...incrementerSo.attributes,
-          ...updatedAttributes,
-        },
-      };
-    } catch (error) {
-      this.logger.error(`Unable to update incrementer due to error: ${error}`);
-      throw error;
     }
   }
 
