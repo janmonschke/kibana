@@ -46,8 +46,16 @@ export class CaseIdIncrementerTaskManager {
                 const { saved_objects: casesWithoutIncrementalId } =
                   casesWithoutIncrementalIdResponse;
 
+                this.logger.debug(
+                  `${casesWithoutIncrementalId.length} cases without incremental ids`
+                );
                 // Increment the case ids
-                await this.casesIncrementService.incrementCaseIds(casesWithoutIncrementalId);
+                const processedAmount = await this.casesIncrementService.incrementCaseIds(
+                  casesWithoutIncrementalId
+                );
+                this.logger.debug(
+                  `Applied incremental ids to ${processedAmount} out of ${casesWithoutIncrementalId.length} cases`
+                );
 
                 const endTime = performance.now();
                 this.logger.info(`Increment id task ended at: ${new Date().toISOString()}`);

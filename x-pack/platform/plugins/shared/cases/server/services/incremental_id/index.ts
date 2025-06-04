@@ -110,10 +110,17 @@ export class CasesIncrementalIdService {
     }
   }
 
+  /**
+   * Increments the case ids for the given cases.
+   * @param casesWithoutIncrementalId The cases we want to apply IDs to
+   * @param maxDurationMs A maximum timeout to run this task for
+   * @returns The amount of processed cases.
+   */
   public async incrementCaseIds(
     casesWithoutIncrementalId: Array<SavedObjectsFindResult<CasePersistedAttributes>>,
     maxDurationMs = 10 * 60 * 1000
-  ) {
+  ): Promise<number> {
+    let countProcessedCases = 0;
     /** In-memory cache of the incremental ID SO changes that we will need to apply */
     const incIdSoCache: Map<string, SavedObject<CaseIdIncrementerPersistedAttributes>> = new Map();
 
@@ -164,6 +171,7 @@ export class CasesIncrementalIdService {
         // Apply the new ID to the local incrementer SO, it will persist later
         incIdSo.attributes.last_id = newId;
         hasAppliedAnId = true;
+        countProcessedCases++;
       } catch (error) {
         this.logger.error(`ID incrementing paused due to error: ${error}`);
         break;
@@ -178,6 +186,8 @@ export class CasesIncrementalIdService {
         await this.incrementCounterSO(incIdSo, incIdSo.attributes.last_id, namespace);
       }
     }
+
+    return countProcessedCases;
   }
 
   getCaseIdIncrementerSo(namespace: string) {
