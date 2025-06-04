@@ -94,6 +94,18 @@ describe('CasesIncrementalIdService', () => {
       expect(result).toStrictEqual(incIdSo);
     });
 
+    it('should return the incrementer SO even if `last_id` is 0', async () => {
+      const lastId = 0;
+      const incIdSo = { attributes: { last_id: lastId } };
+      service.getLastAppliedIdForSpace = jest.fn().mockReturnValue(lastId);
+      service.getCaseIdIncrementerSo = jest.fn().mockReturnValue({
+        total: 1,
+        saved_objects: [incIdSo],
+      });
+      const result = await service.getOrCreateCaseIdIncrementerSo('random');
+      expect(result).toStrictEqual(incIdSo);
+    });
+
     it('should increase and persist `last_id` in case the last applied ID to a case is higher than in the inc ID SO', async () => {
       const incIdLastId = 100;
       const lastAppliedId = 5610;

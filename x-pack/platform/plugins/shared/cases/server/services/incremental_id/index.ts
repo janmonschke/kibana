@@ -220,7 +220,7 @@ export class CasesIncrementalIdService {
       }
 
       // Only one incrementer SO exists
-      if (incrementerResponse.total === 1 && incrementerSO.attributes.last_id) {
+      if (incrementerResponse.total === 1) {
         // If we have matching incremental ids, we're good
         const idsMatch = actualLatestId === incrementerSO.attributes.last_id;
         if (idsMatch || incrementerSO.attributes.last_id >= actualLatestId) {
