@@ -27,6 +27,7 @@ type GetCasesParameters = Pick<
 export class CasesIncrementalIdService {
   static incrementalIdExistsFilter = 'cases.attributes.incremental_id: *';
   static incrementalIdMissingFilter = 'not cases.attributes.incremental_id: *';
+  private isStopped = false;
 
   constructor(
     private internalSavedObjectsClient: SavedObjectsClientContract,
@@ -34,6 +35,13 @@ export class CasesIncrementalIdService {
   ) {
     this.logger = logger.get('incremental-id-service');
     this.logger.info('Cases incremental ID service initialized');
+  }
+
+  public stopService() {
+    this.isStopped = true;
+  }
+  public startService() {
+    this.isStopped = false;
   }
 
   public async getCasesWithoutIncrementalId(parameters: Omit<GetCasesParameters, 'filter'> = {}) {
@@ -127,19 +135,14 @@ export class CasesIncrementalIdService {
     let hasAppliedAnId = false;
     const startTime = Date.now();
 
-    for (let index = 0; index < casesWithoutIncrementalId.length; index++) {
+    for (let index = 0; index < casesWithoutIncrementalId.length && !this.isStopped; index++) {
       try {
         const elapsedTimeMs = Date.now() - startTime;
 
         // Stop processing if we've exceeded the max duration.
         // We will still sync the incIdSoCache at the end.
         if (elapsedTimeMs > maxDurationMs) {
-          const progress = (index + 1 / casesWithoutIncrementalId.length) * 100;
-          this.logger.warn(
-            `Stopping ID incrementing due to time limit. Processed ${progress.toFixed(
-              2
-            )}% of cases.`
-          );
+          this.logger.warn(`Stopping ID incrementing due to time limit.`);
           break;
         }
 
@@ -181,7 +184,7 @@ export class CasesIncrementalIdService {
     // If changes have been made, apply the changes to the counters
     // These are done in sequence, since we cannot guarantee that `incIdSoCache` is small.
     // It might have hundreds/thousands of SO objects cached that need updating.
-    if (hasAppliedAnId) {
+    if (hasAppliedAnId && !this.isStopped) {
       for (const [namespace, incIdSo] of incIdSoCache) {
         await this.incrementCounterSO(incIdSo, incIdSo.attributes.last_id, namespace);
       }

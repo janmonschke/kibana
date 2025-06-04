@@ -39,6 +39,7 @@ export class CaseIdIncrementerTaskManager {
                   this.logger.error('Missing increment service necessary for task');
                   return undefined;
                 }
+                this.casesIncrementService.startService();
 
                 // Fetch all cases without an incremental id
                 const casesWithoutIncrementalIdResponse =
@@ -67,6 +68,7 @@ export class CaseIdIncrementerTaskManager {
                 );
               },
               cancel: async () => {
+                this.casesIncrementService?.stopService();
                 this.logger.info(`${CASES_INCREMENTAL_ID_SYNC_TASK_ID} task run was canceled`);
               },
             };
