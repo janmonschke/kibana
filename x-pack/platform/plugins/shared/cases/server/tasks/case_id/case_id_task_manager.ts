@@ -5,8 +5,11 @@
  * 2.0.
  */
 import { SavedObjectsClient, type CoreStart, type Logger } from '@kbn/core/server';
-import type { TaskInstance, TaskManagerStartContract } from '@kbn/task-manager-plugin/server';
-import type { CasesServerSetupDependencies } from '../../types';
+import {
+  TaskStatus,
+  type TaskManagerSetupContract,
+  type TaskManagerStartContract,
+} from '@kbn/task-manager-plugin/server';
 import { CASE_SAVED_OBJECT, CASE_ID_INCREMENTER_SAVED_OBJECT } from '../../../common/constants';
 import { CasesIncrementalIdService } from '../../services/incremental_id';
 
@@ -19,80 +22,67 @@ const CASES_INCREMENTAL_ID_SYNC_INTERVAL_DEFAULT = '1m';
 export class CaseIdIncrementerTaskManager {
   private logger: Logger;
   private casesIncrementService?: CasesIncrementalIdService;
+  private taskManager?: TaskManagerStartContract;
 
-  constructor(plugins: CasesServerSetupDependencies, logger: Logger) {
+  constructor(taskManager: TaskManagerSetupContract, logger: Logger) {
     this.logger = logger.get('cases', 'incremental_id_task');
     this.logger.info('Registering Case Incremental ID Task Manager');
 
-    if (plugins.taskManager) {
-      plugins.taskManager.registerTaskDefinitions({
-        [CASES_INCREMENTAL_ID_SYNC_TASK_TYPE]: {
-          title: 'Cases Numerical ID assignment',
-          description: 'Applying incremental numeric ids to cases',
-          createTaskRunner: () => {
-            return {
-              run: async () => {
-                const initializedTime = new Date().toISOString();
-                const startTime = performance.now();
-                this.logger.info(`Increment id task started at: ${initializedTime}`);
-                if (!this.casesIncrementService) {
-                  this.logger.error('Missing increment service necessary for task');
-                  return undefined;
-                }
-                this.casesIncrementService.startService();
+    taskManager.registerTaskDefinitions({
+      [CASES_INCREMENTAL_ID_SYNC_TASK_TYPE]: {
+        title: 'Cases Numerical ID assignment',
+        description: 'Applying incremental numeric ids to cases',
+        // timeout: '10s',
+        createTaskRunner: () => {
+          return {
+            run: async () => {
+              const initializedTime = new Date().toISOString();
+              const startTime = performance.now();
+              this.logger.info(`Increment id task started at: ${initializedTime}`);
+              if (!this.casesIncrementService) {
+                this.logger.error('Missing increment service necessary for task');
+                return undefined;
+              }
+              this.casesIncrementService.startService();
 
-                // Fetch all cases without an incremental id
-                const casesWithoutIncrementalIdResponse =
-                  await this.casesIncrementService.getCasesWithoutIncrementalId();
-                const { saved_objects: casesWithoutIncrementalId } =
-                  casesWithoutIncrementalIdResponse;
+              // Fetch all cases without an incremental id
+              const casesWithoutIncrementalIdResponse =
+                await this.casesIncrementService.getCasesWithoutIncrementalId();
+              const { saved_objects: casesWithoutIncrementalId } =
+                casesWithoutIncrementalIdResponse;
 
-                this.logger.debug(
-                  `${casesWithoutIncrementalId.length} cases without incremental ids`
-                );
-                // Increment the case ids
-                const processedAmount = await this.casesIncrementService.incrementCaseIds(
-                  casesWithoutIncrementalId
-                );
-                this.logger.debug(
-                  `Applied incremental ids to ${processedAmount} out of ${casesWithoutIncrementalId.length} cases`
-                );
+              this.logger.debug(
+                `${casesWithoutIncrementalId.length} cases without incremental ids`
+              );
+              // Increment the case ids
+              const processedAmount = await this.casesIncrementService.incrementCaseIds(
+                casesWithoutIncrementalId
+              );
+              this.logger.debug(
+                `Applied incremental ids to ${processedAmount} out of ${casesWithoutIncrementalId.length} cases`
+              );
 
-                const endTime = performance.now();
-                this.logger.info(`Increment id task ended at: ${new Date().toISOString()}`);
-
-                this.logger.debug(
-                  `Task terminated ${CASES_INCREMENTAL_ID_SYNC_TASK_ID}. Task run took ${
-                    endTime - startTime
-                  }ms [ started: ${initializedTime} ]`
-                );
-              },
-              cancel: async () => {
-                this.casesIncrementService?.stopService();
-                this.logger.info(`${CASES_INCREMENTAL_ID_SYNC_TASK_ID} task run was canceled`);
-              },
-            };
-          },
+              const endTime = performance.now();
+              this.logger.info(`Increment id task ended at: ${new Date().toISOString()}`);
+              this.logger.debug(
+                `Task terminated ${CASES_INCREMENTAL_ID_SYNC_TASK_ID}. Task run took ${
+                  endTime - startTime
+                }ms [ started: ${initializedTime} ]`
+              );
+            },
+            cancel: async () => {
+              this.casesIncrementService?.stopService();
+              this.logger.info(`${CASES_INCREMENTAL_ID_SYNC_TASK_ID} task run was canceled`);
+            },
+          };
         },
-      });
-    }
+      },
+    });
   }
 
-  public async scheduleIncrementIdTask(
-    taskManager: TaskManagerStartContract,
-    core: CoreStart
-  ): Promise<TaskInstance | null> {
+  public async setupIncrementIdTask(taskManager: TaskManagerStartContract, core: CoreStart) {
+    this.taskManager = taskManager;
     try {
-      if (!taskManager) {
-        this.logger.error(
-          `Error running task: ${CASES_INCREMENTAL_ID_SYNC_TASK_ID}. Missing task manager service`
-        );
-        return null;
-      }
-
-      // TODO: REMOVE as this removes the existing state we want to keep, but good for testing cleanup
-      // await taskManager.removeIfExists(CASES_INCREMENTAL_ID_SYNC_TASK_ID);
-
       // Instantiate saved objects client
       const internalSavedObjectsRepository = core.savedObjects.createInternalRepository([
         CASE_SAVED_OBJECT,
@@ -105,7 +95,7 @@ export class CaseIdIncrementerTaskManager {
         this.logger
       );
 
-      const taskInstance = await taskManager.ensureScheduled({
+      const taskInstance = await this.taskManager.ensureScheduled({
         id: CASES_INCREMENTAL_ID_SYNC_TASK_ID,
         taskType: CASES_INCREMENTAL_ID_SYNC_TASK_TYPE,
         schedule: {
@@ -119,14 +109,26 @@ export class CaseIdIncrementerTaskManager {
       this.logger.info(
         `${CASES_INCREMENTAL_ID_SYNC_TASK_ID} scheduled with interval ${taskInstance.schedule?.interval}`
       );
-
-      return taskInstance;
     } catch (e) {
       this.logger.error(
         `Error running task: ${CASES_INCREMENTAL_ID_SYNC_TASK_ID}: ${e}`,
         e?.message ?? e
       );
       return null;
+    }
+  }
+
+  /**
+   * Ensure the id incrementer task is running soon
+   */
+  public async scheduleIdCrementerTask() {
+    try {
+      const taskInstance = await this.taskManager?.get(CASES_INCREMENTAL_ID_SYNC_TASK_ID);
+      if (taskInstance?.status === TaskStatus.Idle) {
+        await this.taskManager?.runSoon(CASES_INCREMENTAL_ID_SYNC_TASK_ID);
+      }
+    } catch (e) {
+      this.logger.debug(`Could not run task: ${e}`);
     }
   }
 }

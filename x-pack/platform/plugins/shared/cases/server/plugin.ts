@@ -86,8 +86,6 @@ export class CasePlugin
       )}] and plugins [${Object.keys(plugins)}]`
     );
 
-    this.casesIdIncrementerTaskManager = new CaseIdIncrementerTaskManager(plugins, this.logger);
-
     registerInternalAttachments(
       this.externalReferenceAttachmentTypeRegistry,
       this.persistableStateAttachmentTypeRegistry
@@ -121,14 +119,21 @@ export class CasePlugin
       })
     );
 
-    if (plugins.taskManager && plugins.usageCollection) {
-      createCasesTelemetry({
-        core,
-        taskManager: plugins.taskManager,
-        usageCollection: plugins.usageCollection,
-        logger: this.logger,
-        kibanaVersion: this.kibanaVersion,
-      });
+    if (plugins.taskManager) {
+      this.casesIdIncrementerTaskManager = new CaseIdIncrementerTaskManager(
+        plugins.taskManager,
+        this.logger
+      );
+
+      if (plugins.usageCollection) {
+        createCasesTelemetry({
+          core,
+          taskManager: plugins.taskManager,
+          usageCollection: plugins.usageCollection,
+          logger: this.logger,
+          kibanaVersion: this.kibanaVersion,
+        });
+      }
     }
 
     const router = core.http.createRouter<CasesRequestHandlerContext>();
@@ -192,7 +197,7 @@ export class CasePlugin
 
     if (plugins.taskManager) {
       scheduleCasesTelemetryTask(plugins.taskManager, this.logger);
-      this.casesIdIncrementerTaskManager?.scheduleIncrementIdTask(plugins.taskManager, core);
+      this.casesIdIncrementerTaskManager?.setupIncrementIdTask(plugins.taskManager, core);
     }
 
     this.userProfileService.initialize({
@@ -256,6 +261,9 @@ export class CasePlugin
             scopedClusterClient: coreContext.elasticsearch.client.asCurrentUser,
             savedObjectsService: savedObjects,
           });
+        },
+        scheduleIdCrementerTask: () => {
+          this.casesIdIncrementerTaskManager?.scheduleIdCrementerTask();
         },
       };
     };
