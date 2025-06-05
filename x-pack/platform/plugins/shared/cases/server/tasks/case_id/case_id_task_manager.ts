@@ -25,7 +25,7 @@ export class CaseIdIncrementerTaskManager {
   private taskManager?: TaskManagerStartContract;
 
   constructor(taskManager: TaskManagerSetupContract, logger: Logger) {
-    this.logger = logger.get('cases', 'incremental_id_task');
+    this.logger = logger.get('incremental_id_task');
     this.logger.info('Registering Case Incremental ID Task Manager');
 
     taskManager.registerTaskDefinitions({
@@ -38,7 +38,7 @@ export class CaseIdIncrementerTaskManager {
             run: async () => {
               const initializedTime = new Date().toISOString();
               const startTime = performance.now();
-              this.logger.info(`Increment id task started at: ${initializedTime}`);
+              this.logger.debug(`Increment id task started at: ${initializedTime}`);
               if (!this.casesIncrementService) {
                 this.logger.error('Missing increment service necessary for task');
                 return undefined;
@@ -63,16 +63,15 @@ export class CaseIdIncrementerTaskManager {
               );
 
               const endTime = performance.now();
-              this.logger.info(`Increment id task ended at: ${new Date().toISOString()}`);
               this.logger.debug(
                 `Task terminated ${CASES_INCREMENTAL_ID_SYNC_TASK_ID}. Task run took ${
                   endTime - startTime
-                }ms [ started: ${initializedTime} ]`
+                }ms [ started: ${initializedTime}, ended: ${new Date().toISOString()} ]`
               );
             },
             cancel: async () => {
               this.casesIncrementService?.stopService();
-              this.logger.info(`${CASES_INCREMENTAL_ID_SYNC_TASK_ID} task run was canceled`);
+              this.logger.debug(`${CASES_INCREMENTAL_ID_SYNC_TASK_ID} task run was canceled`);
             },
           };
         },

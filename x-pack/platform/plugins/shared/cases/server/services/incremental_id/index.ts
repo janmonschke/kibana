@@ -33,8 +33,8 @@ export class CasesIncrementalIdService {
     private internalSavedObjectsClient: SavedObjectsClientContract,
     private logger: Logger
   ) {
-    this.logger = logger.get('incremental-id-service');
-    this.logger.info('Cases incremental ID service initialized');
+    this.logger = logger.get('incremental_id_service');
+    this.logger.debug('Cases incremental ID service initialized');
   }
 
   public stopService() {
