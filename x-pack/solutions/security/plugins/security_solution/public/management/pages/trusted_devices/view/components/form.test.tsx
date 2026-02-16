@@ -298,7 +298,7 @@ describe('Trusted devices form', () => {
     });
   });
 
-  // FLAKY: https://github.com/elastic/kibana/issues/253368
+  // FLAKY: https://github.com/elastic/kibana/issues/253353
   describe.skip('Conditions', () => {
     beforeEach(async () => {
       await render();
