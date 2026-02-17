@@ -11,6 +11,7 @@ import {
   CaseResponseProperties as CaseResponsePropertiesSchema,
   CreateCaseRequest as CreateCaseRequestSchema,
 } from '../../../docs/openapi/bundled-types.gen';
+import { CasesStepBaseConfigSchema } from './utils';
 
 export const CreateCaseStepTypeId = 'cases.createCase';
 
@@ -27,9 +28,8 @@ export const OutputSchema = z.object({
 });
 
 // `connector-id` is what's triggering the connector selector.
-export const ConfigSchema = z.object({
+export const ConfigSchema = CasesStepBaseConfigSchema.extend({
   'connector-id': z.string().optional(),
-  'push-case': z.boolean().optional().default(false),
 });
 
 export type CreateCaseStepInputSchema = typeof InputSchema;

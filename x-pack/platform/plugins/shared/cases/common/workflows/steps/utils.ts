@@ -5,7 +5,8 @@
  * 2.0.
  */
 
-import { CaseStatusEnum, ConnectorTypesEnum } from '../../docs/openapi/bundled-types.gen';
+import { z } from '@kbn/zod/v4';
 
-export const caseStatusOptions = Object.values(CaseStatusEnum);
-export const connectorTypesOptions = Object.values(ConnectorTypesEnum);
+export const CasesStepBaseConfigSchema = z.object({
+  'push-case': z.boolean().optional().default(false),
+});

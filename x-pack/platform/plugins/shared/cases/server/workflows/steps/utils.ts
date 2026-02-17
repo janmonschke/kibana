@@ -8,6 +8,9 @@
 import type { KibanaRequest } from '@kbn/core/server';
 import type { StepHandlerContext } from '@kbn/workflows-extensions/server';
 import type { CasesClient } from '../../client';
+import type { CreateCaseStepOutput } from '../../../common/workflows/steps/create_case';
+
+type WorkflowStepCaseResult = CreateCaseStepOutput['case'];
 
 async function getCasesClientFromStepsContext(
   context: StepHandlerContext,
@@ -21,22 +24,34 @@ async function getCasesClientFromStepsContext(
 /**
  * Creates a standardized handler for cases workflow steps.
  */
-export function createCasesStepHandler<TInput = unknown, TOutput = unknown, TConfig = unknown>(
+export function createCasesStepHandler<
+  TInput = unknown,
+  TConfig = unknown,
+  TOutputCase extends WorkflowStepCaseResult = WorkflowStepCaseResult
+>(
   getCasesClient: (request: KibanaRequest) => Promise<CasesClient>,
-  operation: (client: CasesClient, input: TInput, config: TConfig) => Promise<TOutput>
+  operation: (client: CasesClient, input: TInput, config: TConfig) => Promise<TOutputCase>
 ) {
   return async (context: StepHandlerContext) => {
     try {
       const casesClient = await getCasesClientFromStepsContext(context, getCasesClient);
-      const result = await operation(
+      const theCase = await operation(
         casesClient,
         context.input as TInput,
         context.config as TConfig
       );
 
+      if (context.config['push-case']) {
+        await casesClient.cases.push({
+          caseId: theCase.id,
+          connectorId: theCase.connector.id,
+          pushType: 'automatic',
+        });
+      }
+
       return {
         output: {
-          case: result,
+          case: theCase,
         },
       };
     } catch (error) {

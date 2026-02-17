@@ -21,6 +21,7 @@ import {
   createCasesWorkflowAutocompleteDataSources,
 } from './case_autocomplete';
 import * as i18n from './translations';
+import { connectorTypesOptions } from './case_enum_options';
 
 export const createCreateCaseStepDefinition = (core: CoreSetup) => {
   const { getTemplateOptions, getCustomFieldOptions, getCategoryOptions, getTagOptions } =
@@ -136,7 +137,7 @@ export const createCreateCaseStepDefinition = (core: CoreSetup) => {
       config: {
         'connector-id': {
           connectorIdSelection: {
-            connectorTypes: ['.resilient'],
+            connectorTypes: connectorTypesOptions,
             enableCreation: false,
           },
         },
