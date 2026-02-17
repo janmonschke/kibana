@@ -116,18 +116,6 @@ export const OBSERVABLE_EXTRACTION_LABEL = i18n.translate(
   }
 );
 
-export const OWNER_VALID_MESSAGE = (owner: string) =>
-  i18n.translate('xpack.cases.workflowSteps.shared.ownerValidMessage', {
-    defaultMessage: 'Owner "{owner}" is valid for case workflows.',
-    values: { owner },
-  });
-
-export const OWNER_NOT_SUPPORTED_MESSAGE = (owner: string, allowedValues: string) =>
-  i18n.translate('xpack.cases.workflowSteps.shared.ownerNotSupportedMessage', {
-    defaultMessage: 'Owner "{owner}" is not supported. Allowed values: {allowedValues}.',
-    values: { owner, allowedValues },
-  });
-
 export const ENUM_VALUE_SUPPORTED_MESSAGE = (label: string, value: string) =>
   i18n.translate('xpack.cases.workflowSteps.shared.enumValueSupportedMessage', {
     defaultMessage: '{label} "{value}" is supported.',

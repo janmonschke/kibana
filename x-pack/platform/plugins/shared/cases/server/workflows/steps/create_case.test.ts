@@ -54,7 +54,13 @@ describe('createCaseStepDefinition', () => {
     const result = await definition.handler(context);
 
     expect(getCasesClient).toHaveBeenCalledTimes(1);
-    expect(create).toHaveBeenCalledWith(createCaseRequestFixture);
+    expect(create).toHaveBeenCalledWith({
+      ...createCaseRequestFixture,
+      assignees: [],
+      category: undefined,
+      customFields: [],
+      severity: 'low',
+    });
     expect(result).toEqual({
       output: {
         case: createCaseResponseFixture,

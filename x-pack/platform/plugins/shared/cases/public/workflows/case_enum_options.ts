@@ -5,17 +5,6 @@
  * 2.0.
  */
 
-import {
-  CaseSeverityEnum,
-  CaseStatusEnum,
-  ConnectorTypesEnum,
-  OwnerEnum,
-} from '../../docs/openapi/bundled-types.gen';
+import { CaseStatusEnum } from '../../docs/openapi/bundled-types.gen';
 
-export const connectorTypeOptions = Object.values(ConnectorTypesEnum);
-export const caseSeverityOptions = Object.values(CaseSeverityEnum);
 export const caseStatusOptions = Object.values(CaseStatusEnum);
-export const ownerOptions = Object.values(OwnerEnum).map((owner) => ({
-  value: owner,
-  label: owner,
-}));

@@ -21,14 +21,18 @@ async function getCasesClientFromStepsContext(
 /**
  * Creates a standardized handler for cases workflow steps.
  */
-export function createCasesStepHandler<TInput = unknown, TOutput = unknown>(
+export function createCasesStepHandler<TInput = unknown, TOutput = unknown, TConfig = unknown>(
   getCasesClient: (request: KibanaRequest) => Promise<CasesClient>,
-  operation: (client: CasesClient, input: TInput) => Promise<TOutput>
+  operation: (client: CasesClient, input: TInput, config: TConfig) => Promise<TOutput>
 ) {
   return async (context: StepHandlerContext) => {
     try {
       const casesClient = await getCasesClientFromStepsContext(context, getCasesClient);
-      const result = await operation(casesClient, context.input as TInput);
+      const result = await operation(
+        casesClient,
+        context.input as TInput,
+        context.config as TConfig
+      );
 
       return {
         output: {

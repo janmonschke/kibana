@@ -14,18 +14,17 @@ import {
 } from '../../common/workflows/steps/update_case';
 import {
   buildBooleanSelectionHandler,
-  buildConnectorSelectionHandler,
   buildCustomFieldKeySelectionHandler,
   buildCustomFieldTypeSelectionHandler,
   buildEnumSelectionHandler,
   buildStringValueSelectionHandler,
   createCasesWorkflowAutocompleteDataSources,
 } from './case_autocomplete';
-import { caseSeverityOptions, caseStatusOptions, connectorTypeOptions } from './case_enum_options';
+import { caseStatusOptions } from './case_enum_options';
 import * as i18n from './translations';
 
 export const createUpdateCaseStepDefinition = (core: CoreSetup) => {
-  const { getConnectors, getCustomFieldOptions, getCategoryOptions, getTagOptions } =
+  const { getCustomFieldOptions, getCategoryOptions, getTagOptions } =
     createCasesWorkflowAutocompleteDataSources(core);
 
   return createPublicStepDefinition({
@@ -55,9 +54,6 @@ export const createUpdateCaseStepDefinition = (core: CoreSetup) => {
     actionsMenuGroup: ActionsMenuGroup.kibana,
     editorHandlers: {
       input: {
-        'updates.severity': {
-          selection: buildEnumSelectionHandler(caseSeverityOptions, i18n.SEVERITY_LABEL),
-        },
         'updates.status': {
           selection: buildEnumSelectionHandler(caseStatusOptions, i18n.STATUS_LABEL),
         },
@@ -66,15 +62,6 @@ export const createUpdateCaseStepDefinition = (core: CoreSetup) => {
         },
         'updates.tags': {
           selection: buildStringValueSelectionHandler(getTagOptions, i18n.TAG_LABEL),
-        },
-        'updates.connector.id': {
-          selection: buildConnectorSelectionHandler(getConnectors, 'id'),
-        },
-        'updates.connector.name': {
-          selection: buildConnectorSelectionHandler(getConnectors, 'name'),
-        },
-        'updates.connector.type': {
-          selection: buildEnumSelectionHandler(connectorTypeOptions, i18n.CONNECTOR_TYPE_LABEL),
         },
         'updates.settings.syncAlerts': {
           selection: buildBooleanSelectionHandler(i18n.ALERT_SYNC_LABEL),

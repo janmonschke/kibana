@@ -14,21 +14,31 @@ import {
 
 export const CreateCaseStepTypeId = 'cases.createCase';
 
+// `tags`, `settings`, `connector` are optional in step definitions.
+// They will be filled in with default values if not provided.
+// `connector` is omitted because step definitions have a custom connector selector.
 export const InputSchema = CreateCaseRequestSchema.partial({
-  connector: true,
   tags: true,
   settings: true,
-});
+}).omit({ connector: true });
 
 export const OutputSchema = z.object({
   case: CaseResponsePropertiesSchema,
 });
 
+// `connector-id` is what's triggering the connector selector.
+export const ConfigSchema = z.object({
+  'connector-id': z.string().optional(),
+  'push-case': z.boolean().optional().default(false),
+});
+
 export type CreateCaseStepInputSchema = typeof InputSchema;
 export type CreateCaseStepOutputSchema = typeof OutputSchema;
+export type CreateCaseStepConfigSchema = typeof ConfigSchema;
 
 export type CreateCaseStepInput = z.infer<typeof InputSchema>;
 export type CreateCaseStepOutput = z.infer<typeof OutputSchema>;
+export type CreateCaseStepConfig = z.infer<typeof ConfigSchema>;
 
 export const createCaseStepCommonDefinition: CommonStepDefinition<
   CreateCaseStepInputSchema,
@@ -37,4 +47,5 @@ export const createCaseStepCommonDefinition: CommonStepDefinition<
   id: CreateCaseStepTypeId,
   inputSchema: InputSchema,
   outputSchema: OutputSchema,
+  configSchema: ConfigSchema,
 };

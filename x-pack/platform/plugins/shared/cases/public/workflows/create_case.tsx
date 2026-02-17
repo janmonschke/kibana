@@ -14,25 +14,17 @@ import {
 } from '../../common/workflows/steps/create_case';
 import {
   buildBooleanSelectionHandler,
-  buildConnectorSelectionHandler,
   buildCustomFieldKeySelectionHandler,
   buildCustomFieldTypeSelectionHandler,
-  buildEnumSelectionHandler,
   buildStringValueSelectionHandler,
   buildTemplateSelectionHandler,
   createCasesWorkflowAutocompleteDataSources,
 } from './case_autocomplete';
-import { caseSeverityOptions, connectorTypeOptions, ownerOptions } from './case_enum_options';
 import * as i18n from './translations';
 
 export const createCreateCaseStepDefinition = (core: CoreSetup) => {
-  const {
-    getConnectors,
-    getTemplateOptions,
-    getCustomFieldOptions,
-    getCategoryOptions,
-    getTagOptions,
-  } = createCasesWorkflowAutocompleteDataSources(core);
+  const { getTemplateOptions, getCustomFieldOptions, getCategoryOptions, getTagOptions } =
+    createCasesWorkflowAutocompleteDataSources(core);
 
   return createPublicStepDefinition({
     ...createCaseStepCommonDefinition,
@@ -141,50 +133,15 @@ export const createCreateCaseStepDefinition = (core: CoreSetup) => {
     },
     actionsMenuGroup: ActionsMenuGroup.kibana,
     editorHandlers: {
-      input: {
-        owner: {
-          selection: {
-            search: async (input: string) => {
-              const query = input.trim().toLowerCase();
-              return query
-                ? ownerOptions.filter((owner) => owner.label.toLowerCase().includes(query))
-                : ownerOptions;
-            },
-            resolve: async (value: string) => {
-              return ownerOptions.find((owner) => owner.value === value) ?? null;
-            },
-            getDetails: async (
-              value: string,
-              _context: unknown,
-              option: { value: string; label: string } | null
-            ) => {
-              if (option) {
-                return {
-                  message: i18n.OWNER_VALID_MESSAGE(option.label),
-                };
-              }
-
-              return {
-                message: i18n.OWNER_NOT_SUPPORTED_MESSAGE(
-                  value,
-                  ownerOptions.map((owner) => owner.value).join(', ')
-                ),
-              };
-            },
+      config: {
+        'connector-id': {
+          connectorIdSelection: {
+            connectorTypes: ['.resilient'],
+            enableCreation: false,
           },
         },
-        'connector.id': {
-          selection: buildConnectorSelectionHandler(getConnectors, 'id'),
-        },
-        'connector.name': {
-          selection: buildConnectorSelectionHandler(getConnectors, 'name'),
-        },
-        'connector.type': {
-          selection: buildEnumSelectionHandler(connectorTypeOptions, i18n.CONNECTOR_TYPE_LABEL),
-        },
-        severity: {
-          selection: buildEnumSelectionHandler(caseSeverityOptions, i18n.SEVERITY_LABEL),
-        },
+      },
+      input: {
         category: {
           selection: buildStringValueSelectionHandler(getCategoryOptions, i18n.CATEGORY_LABEL),
         },
@@ -198,7 +155,6 @@ export const createCreateCaseStepDefinition = (core: CoreSetup) => {
           selection: buildBooleanSelectionHandler(i18n.OBSERVABLE_EXTRACTION_LABEL),
         },
         // editorHandlers do not currently support array item paths reliably.
-        // Use customFields.key and customFields.type to provide discoverability for values from case configuration.
         'customFields.key': {
           selection: buildCustomFieldKeySelectionHandler(getCustomFieldOptions),
         },

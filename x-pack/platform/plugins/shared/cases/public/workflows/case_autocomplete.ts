@@ -6,17 +6,9 @@
  */
 
 import type { CoreSetup, HttpStart } from '@kbn/core/public';
-import type { PropertySelectionHandler, SelectionOption } from '@kbn/workflows';
+import type { PropertySelectionHandler, SelectionContext, SelectionOption } from '@kbn/workflows';
 import { CASE_CONFIGURE_URL, CASE_TAGS_URL } from '../../common/constants';
-import { getAllConnectorsUrl } from '../../common/utils/connectors_api';
 import * as i18n from './translations';
-
-export interface ConnectorOption {
-  id: string;
-  name: string;
-  actionTypeId?: string;
-  type?: string;
-}
 
 interface TemplateCaseFieldsOption {
   category?: string | null;
@@ -54,11 +46,6 @@ export const createCasesWorkflowAutocompleteDataSources = (core: CoreSetup) => {
     return httpPromise;
   };
 
-  const getConnectors = async (): Promise<ConnectorOption[]> => {
-    const http = await getHttp();
-    return http.get<ConnectorOption[]>(getAllConnectorsUrl());
-  };
-
   const getCaseConfigurations = async (): Promise<CaseConfigurationOption[]> => {
     const http = await getHttp();
     return http.get<CaseConfigurationOption[]>(CASE_CONFIGURE_URL);
@@ -88,7 +75,6 @@ export const createCasesWorkflowAutocompleteDataSources = (core: CoreSetup) => {
     const customFields = configurations.flatMap(
       (configuration) => configuration.customFields ?? configuration.custom_fields ?? []
     );
-
     return Array.from(
       customFields
         .reduce<Map<string, CustomFieldConfigurationOption>>((map, customField) => {
@@ -105,7 +91,7 @@ export const createCasesWorkflowAutocompleteDataSources = (core: CoreSetup) => {
   };
 
   const getCategoryOptions = async (): Promise<string[]> => {
-    const templates = await getTemplateOptions();
+    const templates = await getCaseConfigurations();
     return Array.from(
       new Set(
         templates
@@ -133,7 +119,6 @@ export const createCasesWorkflowAutocompleteDataSources = (core: CoreSetup) => {
   };
 
   return {
-    getConnectors,
     getTemplateOptions,
     getCustomFieldOptions,
     getCategoryOptions,
@@ -188,59 +173,6 @@ export const buildBooleanSelectionHandler = (label: string): PropertySelectionHa
   getDetails: async (value: string) => ({
     message: i18n.BOOLEAN_SET_TO_MESSAGE(label, value),
   }),
-});
-
-export const buildConnectorSelectionHandler = (
-  getConnectors: () => Promise<ConnectorOption[]>,
-  valueKey: 'id' | 'name' | 'type'
-): PropertySelectionHandler<string> => ({
-  search: async (input: string) => {
-    const connectors = await getConnectors();
-    const query = input.trim().toLowerCase();
-    return connectors
-      .filter(
-        (connector) =>
-          query.length === 0 ||
-          connector.id.toLowerCase().includes(query) ||
-          connector.name.toLowerCase().includes(query) ||
-          (connector.type ?? '').toLowerCase().includes(query)
-      )
-      .map((connector) => ({
-        value: (connector[valueKey] ?? '') as string,
-        label: connector.name,
-        description: connector.actionTypeId
-          ? i18n.CONNECTOR_ACTION_TYPE_DESCRIPTION(connector.actionTypeId)
-          : undefined,
-      }))
-      .filter((option) => option.value.length > 0);
-  },
-  resolve: async (value: string) => {
-    const connectors = await getConnectors();
-    const connector = connectors.find((item) => item[valueKey] === value);
-
-    if (!connector) {
-      return null;
-    }
-
-    return {
-      value: (connector[valueKey] ?? '') as string,
-      label: connector.name,
-      description: connector.actionTypeId
-        ? i18n.CONNECTOR_ACTION_TYPE_DESCRIPTION(connector.actionTypeId)
-        : undefined,
-    };
-  },
-  getDetails: async (value: string, _context: unknown, option: SelectionOption<string> | null) => {
-    if (option) {
-      return {
-        message: i18n.CONNECTOR_AVAILABLE_MESSAGE(option.label),
-      };
-    }
-
-    return {
-      message: i18n.CONNECTOR_NOT_FOUND_MESSAGE(value),
-    };
-  },
 });
 
 export const buildTemplateSelectionHandler = (
@@ -369,7 +301,9 @@ export const buildStringValueSelectionHandler = (
   getValues: () => Promise<string[]>,
   label: string
 ): PropertySelectionHandler<string> => ({
-  search: async (input: string) => {
+  search: async (input: string, context: SelectionContext) => {
+    console.log('context', context);
+    debugger;
     const values = await getValues();
     const query = input.trim().toLowerCase();
     return values
@@ -379,14 +313,22 @@ export const buildStringValueSelectionHandler = (
         label: value,
       }));
   },
-  resolve: async (value: string) => {
+  resolve: async (value: string, context: SelectionContext) => {
+    console.log('context', context);
+    debugger;
     const values = await getValues();
     if (!values.includes(value)) {
       return null;
     }
     return { value, label: value };
   },
-  getDetails: async (value: string, _context: unknown, option: SelectionOption<string> | null) => {
+  getDetails: async (
+    value: string,
+    context: SelectionContext,
+    option: SelectionOption<string> | null
+  ) => {
+    console.log('context', context);
+    debugger;
     if (option) {
       return {
         message: i18n.STRING_VALUE_AVAILABLE_MESSAGE(label, option.label),
