@@ -26,6 +26,7 @@ export const defaultTextParameters = {
 };
 
 // FLAKY: https://github.com/elastic/kibana/issues/239817
+// FLAKY: https://github.com/elastic/kibana/issues/239818
 describe.skip('Mappings editor: text datatype', () => {
   /**
    * Variable to store the mappings data forwarded to the consumer component
