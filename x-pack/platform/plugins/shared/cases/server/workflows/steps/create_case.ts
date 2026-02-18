@@ -15,7 +15,7 @@ import {
 } from '../../../common/workflows/steps/create_case';
 import type { CasesClient } from '../../client';
 
-import { createCasesStepHandler, normalizeCaseStepConnector } from './utils';
+import { createCasesStepHandler } from './utils';
 import {
   getInitialCaseValue,
   type GetInitialCaseValueArgs,
@@ -33,7 +33,6 @@ export const createCaseStepDefinition = (
       CreateCaseStepOutput['case']
     >(getCasesClient, async (casesClient, input, config) => {
       let enrichedInput = getInitialCaseValue(input as unknown as GetInitialCaseValueArgs);
-      // TODO: Add cases.createFromTemplate step. Takes the template values and enriches it with the optional input.Multip
 
       // If a connector was provided, make sure to resolve its config and add it to the input.
       if (config['connector-id']) {
@@ -43,22 +42,14 @@ export const createCaseStepDefinition = (
         );
 
         if (foundConnector) {
-          const normalizedConnector = normalizeCaseStepConnector({
-            id: foundConnector.id,
-            name: foundConnector.name,
-            type: foundConnector.actionTypeId as ConnectorTypes,
-            fields: null,
-          });
-
-          if (!normalizedConnector) {
-            throw new Error(
-              `Connector configuration could not be normalized: ${config['connector-id']}`
-            );
-          }
-
           enrichedInput = getInitialCaseValue({
             ...(input as GetInitialCaseValueArgs),
-            connector: normalizedConnector,
+            connector: {
+              id: foundConnector.id,
+              name: foundConnector.name,
+              type: foundConnector.actionTypeId as ConnectorTypes,
+              fields: null,
+            },
           });
         } else {
           throw new Error(`Connector configuration not found: ${config['connector-id']}`);

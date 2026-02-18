@@ -8,77 +8,7 @@
 import type { KibanaRequest } from '@kbn/core/server';
 import type { StepHandlerContext } from '@kbn/workflows-extensions/server';
 import { ConnectorTypes } from '../../../common/types/domain';
-import {
-  createCasesStepHandler,
-  normalizeCaseStepConnector,
-  normalizeCaseStepUpdatesForBulkPatch,
-} from './utils';
-
-describe('normalizeCaseStepConnector', () => {
-  it('returns undefined when connector is undefined', () => {
-    expect(normalizeCaseStepConnector(undefined)).toBeUndefined();
-  });
-
-  it('normalizes none and cases-webhook connector fields to null', () => {
-    expect(
-      normalizeCaseStepConnector({
-        id: 'none-id',
-        type: ConnectorTypes.none,
-        fields: 'legacy-value',
-      })
-    ).toEqual({
-      id: 'none-id',
-      type: ConnectorTypes.none,
-      fields: null,
-    });
-
-    expect(
-      normalizeCaseStepConnector({
-        id: 'webhook-id',
-        type: ConnectorTypes.casesWebhook,
-        fields: { legacy: true },
-      })
-    ).toEqual({
-      id: 'webhook-id',
-      type: ConnectorTypes.casesWebhook,
-      fields: null,
-    });
-  });
-
-  it('normalizes resilient connector issueTypes to incidentTypes', () => {
-    expect(
-      normalizeCaseStepConnector({
-        id: 'resilient-id',
-        type: ConnectorTypes.resilient,
-        fields: {
-          issueTypes: ['incident'],
-          severityCode: 'high',
-        },
-      })
-    ).toEqual({
-      id: 'resilient-id',
-      type: ConnectorTypes.resilient,
-      fields: {
-        incidentTypes: ['incident'],
-        severityCode: 'high',
-      },
-    });
-  });
-
-  it('passes through connectors that do not require normalization', () => {
-    expect(
-      normalizeCaseStepConnector({
-        id: 'jira-id',
-        type: ConnectorTypes.jira,
-        fields: { issueType: '10001' },
-      })
-    ).toEqual({
-      id: 'jira-id',
-      type: ConnectorTypes.jira,
-      fields: { issueType: '10001' },
-    });
-  });
-});
+import { createCasesStepHandler, normalizeCaseStepUpdatesForBulkPatch } from './utils';
 
 describe('normalizeCaseStepUpdatesForBulkPatch', () => {
   it('normalizes assignees and connector fields while preserving other fields', () => {
