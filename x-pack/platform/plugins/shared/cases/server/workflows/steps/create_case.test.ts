@@ -14,11 +14,11 @@ import {
 import { createCaseStepDefinition } from './create_case';
 import type { CasesClient } from '../../client';
 
-const createContext = (input: unknown): StepHandlerContext =>
+const createContext = (input: unknown, config: Record<string, unknown> = {}): StepHandlerContext =>
   ({
     input,
     rawInput: input,
-    config: {},
+    config,
     contextManager: {
       getFakeRequest: jest.fn().mockReturnValue({} as KibanaRequest),
     },
@@ -79,5 +79,80 @@ describe('createCaseStepDefinition', () => {
     const result = await definition.handler(createContext(createCaseRequestFixture));
 
     expect(result).toEqual({ error: createError });
+  });
+
+  it('uses configured connector when connector-id is provided', async () => {
+    const create = jest.fn().mockResolvedValue(createCaseResponseFixture);
+    const getConnectors = jest.fn().mockResolvedValue([
+      {
+        id: 'jira-1',
+        name: 'Jira Connector',
+        actionTypeId: '.jira',
+      },
+    ]);
+    const getCasesClient = jest.fn().mockResolvedValue({
+      configure: { getConnectors },
+      cases: { create },
+    } as unknown as CasesClient);
+    const definition = createCaseStepDefinition(getCasesClient);
+
+    await definition.handler(createContext(createCaseRequestFixture, { 'connector-id': 'jira-1' }));
+
+    expect(getConnectors).toHaveBeenCalledTimes(1);
+    expect(create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        connector: {
+          id: 'jira-1',
+          name: 'Jira Connector',
+          type: '.jira',
+          fields: null,
+        },
+      })
+    );
+  });
+
+  it('returns error when configured connector cannot be found', async () => {
+    const create = jest.fn();
+    const getConnectors = jest.fn().mockResolvedValue([
+      {
+        id: 'jira-1',
+        name: 'Jira Connector',
+        actionTypeId: '.jira',
+      },
+    ]);
+    const getCasesClient = jest.fn().mockResolvedValue({
+      configure: { getConnectors },
+      cases: { create },
+    } as unknown as CasesClient);
+    const definition = createCaseStepDefinition(getCasesClient);
+
+    const result = await definition.handler(
+      createContext(createCaseRequestFixture, { 'connector-id': 'missing-connector' })
+    );
+
+    expect(create).not.toHaveBeenCalled();
+    expect(result.error).toBeInstanceOf(Error);
+    expect(result.error).toEqual(
+      expect.objectContaining({
+        message: expect.stringContaining('Connector configuration not found'),
+      })
+    );
+  });
+
+  it('pushes the case when push-case is enabled', async () => {
+    const create = jest.fn().mockResolvedValue(createCaseResponseFixture);
+    const push = jest.fn().mockResolvedValue(undefined);
+    const getCasesClient = jest.fn().mockResolvedValue({
+      cases: { create, push },
+    } as unknown as CasesClient);
+    const definition = createCaseStepDefinition(getCasesClient);
+
+    await definition.handler(createContext(createCaseRequestFixture, { 'push-case': true }));
+
+    expect(push).toHaveBeenCalledWith({
+      caseId: createCaseResponseFixture.id,
+      connectorId: createCaseResponseFixture.connector.id,
+      pushType: 'automatic',
+    });
   });
 });

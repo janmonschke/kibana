@@ -11,11 +11,11 @@ import { createCaseResponseFixture } from '../../../common/fixtures/create_case'
 import { addCommentStepDefinition } from './add_comment';
 import type { CasesClient } from '../../client';
 
-const createContext = (input: unknown): StepHandlerContext =>
+const createContext = (input: unknown, config: Record<string, unknown> = {}): StepHandlerContext =>
   ({
     input,
     rawInput: input,
-    config: {},
+    config,
     contextManager: {
       getFakeRequest: jest.fn().mockReturnValue({} as KibanaRequest),
     },
@@ -85,5 +85,40 @@ describe('addCommentStepDefinition', () => {
     const result = await definition.handler(createContext(input));
 
     expect(result).toEqual({ error: addError });
+  });
+
+  it('returns error when fetching case fails', async () => {
+    const getError = new Error('get failed');
+    const get = jest.fn().mockRejectedValue(getError);
+    const add = jest.fn();
+    const getCasesClient = jest.fn().mockResolvedValue({
+      cases: { get },
+      attachments: { add },
+    } as unknown as CasesClient);
+    const definition = addCommentStepDefinition(getCasesClient);
+
+    const result = await definition.handler(createContext(input));
+
+    expect(add).not.toHaveBeenCalled();
+    expect(result).toEqual({ error: getError });
+  });
+
+  it('pushes case when push-case is enabled', async () => {
+    const get = jest.fn().mockResolvedValue(createCaseResponseFixture);
+    const add = jest.fn().mockResolvedValue(createCaseResponseFixture);
+    const push = jest.fn().mockResolvedValue(undefined);
+    const getCasesClient = jest.fn().mockResolvedValue({
+      cases: { get, push },
+      attachments: { add },
+    } as unknown as CasesClient);
+    const definition = addCommentStepDefinition(getCasesClient);
+
+    await definition.handler(createContext(input, { 'push-case': true }));
+
+    expect(push).toHaveBeenCalledWith({
+      caseId: createCaseResponseFixture.id,
+      connectorId: createCaseResponseFixture.connector.id,
+      pushType: 'automatic',
+    });
   });
 });

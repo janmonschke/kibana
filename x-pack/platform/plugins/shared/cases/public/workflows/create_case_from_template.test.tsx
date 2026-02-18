@@ -107,6 +107,30 @@ describe('createCreateCaseFromTemplateStepDefinition', () => {
     });
   });
 
+  it('returns no options for empty search query', async () => {
+    const { templateSelection } = setup();
+
+    await expect(
+      templateSelection!.search('   ', {
+        stepType: 'cases.createCaseFromTemplate',
+        scope: 'input',
+        propertyKey: 'case-template-id',
+      })
+    ).resolves.toEqual([]);
+  });
+
+  it('filters templates by workflow owner', async () => {
+    const { templateSelection } = setup();
+
+    await expect(
+      templateSelection!.search('observability', {
+        stepType: 'cases.createCaseFromTemplate',
+        scope: 'input',
+        propertyKey: 'case-template-id',
+      })
+    ).resolves.toEqual([]);
+  });
+
   it('returns details message for resolved and unresolved template values', async () => {
     const { templateSelection } = setup();
 
@@ -123,6 +147,20 @@ describe('createCreateCaseFromTemplateStepDefinition', () => {
 
     expect(resolvedDetails.message).toContain('can be used');
     expect(unresolvedDetails.message).toContain('was not found');
+  });
+
+  it('propagates API errors from getCaseConfigure', async () => {
+    const error = new Error('configure fetch failed');
+    const { templateSelection } = setup();
+    getCaseConfigureMock.mockRejectedValueOnce(error);
+
+    await expect(
+      templateSelection!.search('triage', {
+        stepType: 'cases.createCaseFromTemplate',
+        scope: 'input',
+        propertyKey: 'case-template-id',
+      })
+    ).rejects.toThrow(error.message);
   });
 
   beforeEach(() => {
