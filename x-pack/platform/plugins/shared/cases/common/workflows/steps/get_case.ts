@@ -9,7 +9,7 @@ import { z } from '@kbn/zod/v4';
 import type { CommonStepDefinition } from '@kbn/workflows-extensions/common';
 import { CaseResponseProperties } from '../../../docs/openapi/bundled-types.gen';
 
-export const GetCaseStepTypeId = 'case.getCase';
+export const GetCaseStepTypeId = 'cases.getCase';
 
 export const InputSchema = z.object({
   case_id: z.string().min(1, 'case_id is required'),

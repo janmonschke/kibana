@@ -5,22 +5,24 @@
  * 2.0.
  */
 
-import type { CoreSetup } from '@kbn/core/public';
 import { getCaseStepDefinition } from './get_case';
 import { createCreateCaseStepDefinition } from './create_case';
+// import { createCreateCaseFromTemplateStepDefinition } from './create_case_from_template';
 import { createUpdateCaseStepDefinition } from './update_case';
 import { addCommentStepDefinition } from './add_comment';
 import type { CasesPublicSetupDependencies } from '../types';
 
 export function registerCasesSteps(
-  core: CoreSetup,
   workflowsExtensions: CasesPublicSetupDependencies['workflowsExtensions']
 ) {
   if (!workflowsExtensions) {
     return;
   }
+
   workflowsExtensions.registerStepDefinition(getCaseStepDefinition);
-  workflowsExtensions.registerStepDefinition(createCreateCaseStepDefinition(core));
-  workflowsExtensions.registerStepDefinition(createUpdateCaseStepDefinition(core));
+  workflowsExtensions.registerStepDefinition(createCreateCaseStepDefinition());
+  // Leaving this in for now. We need to get support for reflective value lookup first.
+  // workflowsExtensions.registerStepDefinition(createCreateCaseFromTemplateStepDefinition());
+  workflowsExtensions.registerStepDefinition(createUpdateCaseStepDefinition());
   workflowsExtensions.registerStepDefinition(addCommentStepDefinition);
 }

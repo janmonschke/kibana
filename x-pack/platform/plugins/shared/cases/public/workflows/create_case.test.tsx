@@ -5,7 +5,7 @@
  * 2.0.
  */
 
-import type { CoreSetup, HttpStart } from '@kbn/core/public';
+import type { HttpStart } from '@kbn/core/public';
 import { createCreateCaseStepDefinition } from './create_case';
 
 describe('createCreateCaseStepDefinition', () => {
@@ -55,11 +55,7 @@ describe('createCreateCaseStepDefinition', () => {
       }),
     } as unknown as jest.Mocked<HttpStart>;
 
-    const core = {
-      getStartServices: jest.fn().mockResolvedValue([{ http }, {}, {}]),
-    } as unknown as jest.Mocked<CoreSetup>;
-
-    const definition = createCreateCaseStepDefinition(core);
+    const definition = createCreateCaseStepDefinition();
     const inputHandlers = (definition.editorHandlers?.input ?? {}) as Record<
       string,
       { selection?: SelectionHandler }

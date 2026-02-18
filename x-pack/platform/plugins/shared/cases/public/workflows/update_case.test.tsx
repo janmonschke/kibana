@@ -5,27 +5,9 @@
  * 2.0.
  */
 
-import type { CoreSetup, HttpStart } from '@kbn/core/public';
 import { createUpdateCaseStepDefinition } from './update_case';
 
 describe('createUpdateCaseStepDefinition', () => {
-  const connectors = [
-    { id: 'none', name: 'No connector', actionTypeId: '.none', type: '.none' },
-    { id: 'jira-1', name: 'Jira Connector', actionTypeId: '.jira', type: '.jira' },
-  ];
-  const tags = ['security', 'incident'];
-  const configurations = [
-    {
-      owner: 'securitySolution',
-      templates: [
-        { key: 'triage_template', name: 'Triage template', caseFields: { category: 'Security' } },
-      ],
-      customFields: [
-        { key: 'priority_level', label: 'Priority level', type: 'text', required: true },
-      ],
-    },
-  ];
-
   const setup = () => {
     interface SelectionHandler {
       search: (input: string, context: unknown) => Promise<unknown>;
@@ -37,23 +19,7 @@ describe('createUpdateCaseStepDefinition', () => {
       ) => Promise<{ message: string }>;
     }
 
-    const http = {
-      get: jest.fn((url: string) => {
-        if (url === '/api/cases/configure') {
-          return Promise.resolve(configurations);
-        }
-        if (url === '/api/cases/tags') {
-          return Promise.resolve(tags);
-        }
-        return Promise.resolve(connectors);
-      }),
-    } as unknown as jest.Mocked<HttpStart>;
-
-    const core = {
-      getStartServices: jest.fn().mockResolvedValue([{ http }, {}, {}]),
-    } as unknown as jest.Mocked<CoreSetup>;
-
-    const definition = createUpdateCaseStepDefinition(core);
+    const definition = createUpdateCaseStepDefinition();
     const inputHandlers = (definition.editorHandlers?.input ?? {}) as Record<
       string,
       { selection?: SelectionHandler }

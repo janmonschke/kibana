@@ -15,7 +15,7 @@ import {
 } from '../../../common/workflows/steps/create_case';
 import type { CasesClient } from '../../client';
 
-import { createCasesStepHandler } from './utils';
+import { createCasesStepHandler, normalizeCaseStepConnector } from './utils';
 import {
   getInitialCaseValue,
   type GetInitialCaseValueArgs,
@@ -43,14 +43,22 @@ export const createCaseStepDefinition = (
         );
 
         if (foundConnector) {
+          const normalizedConnector = normalizeCaseStepConnector({
+            id: foundConnector.id,
+            name: foundConnector.name,
+            type: foundConnector.actionTypeId as ConnectorTypes,
+            fields: null,
+          });
+
+          if (!normalizedConnector) {
+            throw new Error(
+              `Connector configuration could not be normalized: ${config['connector-id']}`
+            );
+          }
+
           enrichedInput = getInitialCaseValue({
             ...(input as GetInitialCaseValueArgs),
-            connector: {
-              id: foundConnector.id,
-              name: foundConnector.name,
-              type: foundConnector.actionTypeId as ConnectorTypes,
-              fields: null,
-            },
+            connector: normalizedConnector,
           });
         } else {
           throw new Error(`Connector configuration not found: ${config['connector-id']}`);

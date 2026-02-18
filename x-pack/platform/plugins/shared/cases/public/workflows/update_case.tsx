@@ -6,27 +6,14 @@
  */
 
 import React from 'react';
-import type { CoreSetup } from '@kbn/core/public';
 import { ActionsMenuGroup, createPublicStepDefinition } from '@kbn/workflows-extensions/public';
 import {
   updateCaseStepCommonDefinition,
   UpdateCaseStepTypeId,
 } from '../../common/workflows/steps/update_case';
-import {
-  buildBooleanSelectionHandler,
-  buildCustomFieldKeySelectionHandler,
-  buildCustomFieldTypeSelectionHandler,
-  buildEnumSelectionHandler,
-  buildStringValueSelectionHandler,
-  createCasesWorkflowAutocompleteDataSources,
-} from './case_autocomplete';
-import { caseStatusOptions } from './case_enum_options';
 import * as i18n from './translations';
 
-export const createUpdateCaseStepDefinition = (core: CoreSetup) => {
-  const { getCustomFieldOptions, getCategoryOptions, getTagOptions } =
-    createCasesWorkflowAutocompleteDataSources(core);
-
+export const createUpdateCaseStepDefinition = () => {
   return createPublicStepDefinition({
     ...updateCaseStepCommonDefinition,
     icon: React.lazy(() =>
@@ -52,30 +39,5 @@ export const createUpdateCaseStepDefinition = (core: CoreSetup) => {
       ],
     },
     actionsMenuGroup: ActionsMenuGroup.kibana,
-    editorHandlers: {
-      input: {
-        'updates.status': {
-          selection: buildEnumSelectionHandler(caseStatusOptions, i18n.STATUS_LABEL),
-        },
-        'updates.category': {
-          selection: buildStringValueSelectionHandler(getCategoryOptions, i18n.CATEGORY_LABEL),
-        },
-        'updates.tags': {
-          selection: buildStringValueSelectionHandler(getTagOptions, i18n.TAG_LABEL),
-        },
-        'updates.settings.syncAlerts': {
-          selection: buildBooleanSelectionHandler(i18n.ALERT_SYNC_LABEL),
-        },
-        'updates.settings.extractObservables': {
-          selection: buildBooleanSelectionHandler(i18n.OBSERVABLE_EXTRACTION_LABEL),
-        },
-        'updates.customFields.key': {
-          selection: buildCustomFieldKeySelectionHandler(getCustomFieldOptions),
-        },
-        'updates.customFields.type': {
-          selection: buildCustomFieldTypeSelectionHandler(getCustomFieldOptions),
-        },
-      } as Record<string, unknown>,
-    },
   });
 };

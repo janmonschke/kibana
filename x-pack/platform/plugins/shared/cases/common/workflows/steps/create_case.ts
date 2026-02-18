@@ -11,7 +11,7 @@ import {
   CaseResponseProperties as CaseResponsePropertiesSchema,
   CreateCaseRequest as CreateCaseRequestSchema,
 } from '../../../docs/openapi/bundled-types.gen';
-import { CasesStepBaseConfigSchema } from './utils';
+import { CasesStepBaseConfigSchema } from './shared';
 
 export const CreateCaseStepTypeId = 'cases.createCase';
 

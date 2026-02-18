@@ -11,6 +11,7 @@ import {
   CaseResponseProperties as CaseResponsePropertiesSchema,
   UpdateCaseRequest as UpdateCaseRequestSchema,
 } from '../../../docs/openapi/bundled-types.gen';
+import { CasesStepBaseConfigSchema } from './shared';
 
 export const UpdateCaseStepTypeId = 'cases.updateCase';
 
@@ -43,4 +44,5 @@ export const updateCaseStepCommonDefinition: CommonStepDefinition<
   id: UpdateCaseStepTypeId,
   inputSchema: InputSchema,
   outputSchema: OutputSchema,
+  configSchema: CasesStepBaseConfigSchema,
 };

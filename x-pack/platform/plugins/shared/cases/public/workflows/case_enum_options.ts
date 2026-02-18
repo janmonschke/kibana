@@ -5,7 +5,6 @@
  * 2.0.
  */
 
-import { CaseStatusEnum, ConnectorTypesEnum } from '../../docs/openapi/bundled-types.gen';
+import { ConnectorTypesEnum } from '../../docs/openapi/bundled-types.gen';
 
-export const caseStatusOptions = Object.values(CaseStatusEnum);
 export const connectorTypesOptions = Object.values(ConnectorTypesEnum);

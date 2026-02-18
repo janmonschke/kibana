@@ -12,6 +12,7 @@ import {
   type AddCommentStepInput,
   type AddCommentStepOutput,
 } from '../../../common/workflows/steps/add_comment';
+import { AttachmentType } from '../../../common';
 import type { CasesClient } from '../../client';
 import { createCasesStepHandler } from './utils';
 
@@ -29,7 +30,7 @@ export const addCommentStepDefinition = (
       const updatedCase = await client.attachments.add({
         caseId: input.case_id,
         comment: {
-          type: 'user',
+          type: AttachmentType.user,
           comment: input.comment,
           owner: theCase.owner,
         },

@@ -6,27 +6,15 @@
  */
 
 import React from 'react';
-import type { CoreSetup } from '@kbn/core/public';
 import { ActionsMenuGroup, createPublicStepDefinition } from '@kbn/workflows-extensions/public';
 import {
   createCaseStepCommonDefinition,
   CreateCaseStepTypeId,
 } from '../../common/workflows/steps/create_case';
-import {
-  buildBooleanSelectionHandler,
-  buildCustomFieldKeySelectionHandler,
-  buildCustomFieldTypeSelectionHandler,
-  buildStringValueSelectionHandler,
-  buildTemplateSelectionHandler,
-  createCasesWorkflowAutocompleteDataSources,
-} from './case_autocomplete';
 import * as i18n from './translations';
 import { connectorTypesOptions } from './case_enum_options';
 
-export const createCreateCaseStepDefinition = (core: CoreSetup) => {
-  const { getTemplateOptions, getCustomFieldOptions, getCategoryOptions, getTagOptions } =
-    createCasesWorkflowAutocompleteDataSources(core);
-
+export const createCreateCaseStepDefinition = () => {
   return createPublicStepDefinition({
     ...createCaseStepCommonDefinition,
     icon: React.lazy(() =>
@@ -142,30 +130,6 @@ export const createCreateCaseStepDefinition = (core: CoreSetup) => {
           },
         },
       },
-      input: {
-        category: {
-          selection: buildStringValueSelectionHandler(getCategoryOptions, i18n.CATEGORY_LABEL),
-        },
-        tags: {
-          selection: buildStringValueSelectionHandler(getTagOptions, i18n.TAG_LABEL),
-        },
-        'settings.syncAlerts': {
-          selection: buildBooleanSelectionHandler(i18n.ALERT_SYNC_LABEL),
-        },
-        'settings.extractObservables': {
-          selection: buildBooleanSelectionHandler(i18n.OBSERVABLE_EXTRACTION_LABEL),
-        },
-        // editorHandlers do not currently support array item paths reliably.
-        'customFields.key': {
-          selection: buildCustomFieldKeySelectionHandler(getCustomFieldOptions),
-        },
-        'customFields.type': {
-          selection: buildCustomFieldTypeSelectionHandler(getCustomFieldOptions),
-        },
-        template: {
-          selection: buildTemplateSelectionHandler(getTemplateOptions),
-        },
-      } as Record<string, unknown>,
     },
   });
 };
