@@ -8,7 +8,7 @@
  {{> disclaimer}}
 
 import type { ZodTypeDef } from '@kbn/zod';
-{{#if experimentallyImportZodV4}}
+{{#if config.experimentallyImportZodV4}}
 import { z } from '@kbn/zod/v4';
 {{else}}
 import { z } from '@kbn/zod';
