@@ -101,7 +101,9 @@
     "@kbn/zod",
     "@kbn/securitysolution-es-utils",
     "@kbn/response-ops-retry-service",
-    "@kbn/openapi-generator"
+    "@kbn/openapi-generator",
+    "@kbn/workflows-extensions",
+    "@kbn/workflows"
   ],
   "exclude": ["target/**/*"]
 }
