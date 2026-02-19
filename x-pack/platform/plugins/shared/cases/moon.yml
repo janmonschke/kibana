@@ -120,7 +120,7 @@ fileGroups:
     - public/**/*
     - server/**/*
     - scripts/**/*
-    - docs/openapi/**/*.gen.ts
+    - docs/**/*
     - '!target/**/*'
 tasks:
   jest:
