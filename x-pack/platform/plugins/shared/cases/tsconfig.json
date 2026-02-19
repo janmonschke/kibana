@@ -8,8 +8,8 @@
     "public/**/*",
     "server/**/*",
     "scripts/**/*",
-    "../../../../../typings/**/*",
-    "docs/openapi/**/*.gen.ts"
+    "docs/**/*",
+    "../../../../../typings/**/*"
   ],
   "kbn_references": [
     "@kbn/core",
