@@ -7,7 +7,7 @@
 
 import { z } from '@kbn/zod/v4';
 import type { CommonStepDefinition } from '@kbn/workflows-extensions/common';
-import { CaseResponseProperties } from '../../../docs/openapi/bundled-types.gen';
+import { CaseResponseProperties } from '../../bundled-types.gen';
 
 export const GetCaseStepTypeId = 'cases.getCase';
 

@@ -5,6 +5,6 @@
  * 2.0.
  */
 
-import { ConnectorTypesEnum } from '../../docs/openapi/bundled-types.gen';
+import { ConnectorTypesEnum } from '../../common/bundled-types.gen';
 
 export const connectorTypesOptions = Object.values(ConnectorTypesEnum);

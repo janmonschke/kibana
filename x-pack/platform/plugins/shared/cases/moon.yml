@@ -120,7 +120,6 @@ fileGroups:
     - public/**/*
     - server/**/*
     - scripts/**/*
-    - docs/**/*
     - '!target/**/*'
 tasks:
   jest:

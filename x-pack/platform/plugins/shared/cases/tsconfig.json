@@ -8,7 +8,6 @@
     "public/**/*",
     "server/**/*",
     "scripts/**/*",
-    "docs/**/*",
     "../../../../../typings/**/*"
   ],
   "kbn_references": [

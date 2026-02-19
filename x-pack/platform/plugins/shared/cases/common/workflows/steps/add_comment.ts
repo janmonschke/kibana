@@ -7,7 +7,7 @@
 
 import { z } from '@kbn/zod/v4';
 import type { CommonStepDefinition } from '@kbn/workflows-extensions/common';
-import { CaseResponseProperties as CaseResponsePropertiesSchema } from '../../../docs/openapi/bundled-types.gen';
+import { CaseResponseProperties as CaseResponsePropertiesSchema } from '../../bundled-types.gen';
 import { CasesStepBaseConfigSchema } from './shared';
 
 export const AddCommentStepTypeId = 'cases.addComment';

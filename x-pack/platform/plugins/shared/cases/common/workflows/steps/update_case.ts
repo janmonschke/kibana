@@ -10,7 +10,7 @@ import type { CommonStepDefinition } from '@kbn/workflows-extensions/common';
 import {
   CaseResponseProperties as CaseResponsePropertiesSchema,
   UpdateCaseRequest as UpdateCaseRequestSchema,
-} from '../../../docs/openapi/bundled-types.gen';
+} from '../../bundled-types.gen';
 import { CasesStepBaseConfigSchema } from './shared';
 
 export const UpdateCaseStepTypeId = 'cases.updateCase';
