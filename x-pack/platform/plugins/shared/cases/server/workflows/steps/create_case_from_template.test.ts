@@ -85,7 +85,7 @@ describe('createCaseFromTemplateStepDefinition', () => {
             id: 'webhook-1',
             name: 'Cases webhook',
             type: '.cases-webhook',
-            fields: 'legacy-value',
+            fields: null,
           },
         },
       })

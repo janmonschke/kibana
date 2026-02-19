@@ -106,7 +106,7 @@ describe('updateCaseStepDefinition', () => {
             id: 'webhook-1',
             name: 'Webhook',
             type: '.cases-webhook',
-            fields: 'legacy-value',
+            fields: null,
           },
         },
       })

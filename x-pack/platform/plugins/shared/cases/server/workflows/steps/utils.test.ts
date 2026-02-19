@@ -19,7 +19,7 @@ describe('normalizeCaseStepUpdatesForBulkPatch', () => {
           id: 'webhook-id',
           name: 'Webhook',
           type: ConnectorTypes.casesWebhook,
-          fields: 'legacy',
+          fields: null,
         },
         title: 'Updated title',
       } as never)
