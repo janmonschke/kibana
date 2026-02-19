@@ -16,13 +16,12 @@ type WorkflowUpdatePayload = UpdateCaseStepInput['updates'];
 
 export const normalizeCaseStepUpdatesForBulkPatch = (updates: WorkflowUpdatePayload) => {
   const { assignees, connector, ...restUpdates } = updates;
-  const normalizedConnector = connector;
 
   return {
     ...restUpdates,
     ...(assignees === null ? { assignees: [] } : {}),
     ...(assignees ? { assignees } : {}),
-    ...(normalizedConnector ? { connector: normalizedConnector } : {}),
+    ...(connector ? { connector } : {}),
   };
 };
 
