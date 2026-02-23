@@ -74,10 +74,38 @@ describe('updateCaseStepDefinition', () => {
     });
   });
 
-  it('returns error when update call throws', async () => {
-    const updateError = new Error('update failed');
+  it('uses provided version and skips case fetch', async () => {
+    const get = jest.fn();
+    const bulkUpdate = jest
+      .fn()
+      .mockResolvedValue([{ ...createCaseResponseFixture, title: 'Updated title' }]);
+    const getCasesClient = jest.fn().mockResolvedValue({
+      cases: { get, bulkUpdate },
+    } as unknown as CasesClient);
+    const definition = updateCaseStepDefinition(getCasesClient);
+
+    await definition.handler(
+      createContext({
+        ...input,
+        version: 'provided-version',
+      })
+    );
+
+    expect(get).not.toHaveBeenCalled();
+    expect(bulkUpdate).toHaveBeenCalledWith({
+      cases: [
+        {
+          id: 'case-1',
+          version: 'provided-version',
+          title: 'Updated title',
+        },
+      ],
+    });
+  });
+
+  it('returns translated error when update call throws', async () => {
     const get = jest.fn().mockResolvedValue(createCaseResponseFixture);
-    const bulkUpdate = jest.fn().mockRejectedValue(updateError);
+    const bulkUpdate = jest.fn().mockRejectedValue(new Error('update failed'));
     const getCasesClient = jest.fn().mockResolvedValue({
       cases: { get, bulkUpdate },
     } as unknown as CasesClient);
@@ -85,7 +113,11 @@ describe('updateCaseStepDefinition', () => {
 
     const result = await definition.handler(createContext(input));
 
-    expect(result).toEqual({ error: updateError });
+    expect(result.error).toEqual(
+      expect.objectContaining({
+        message: 'Case "case-1" could not be updated.',
+      })
+    );
   });
 
   it('normalizes updates for bulk patch requests', async () => {
@@ -128,9 +160,8 @@ describe('updateCaseStepDefinition', () => {
     });
   });
 
-  it('returns error when case fetch fails', async () => {
-    const getError = new Error('get failed');
-    const get = jest.fn().mockRejectedValue(getError);
+  it('returns translated error when case fetch fails', async () => {
+    const get = jest.fn().mockRejectedValue(new Error('get failed'));
     const bulkUpdate = jest.fn();
     const getCasesClient = jest.fn().mockResolvedValue({
       cases: { get, bulkUpdate },
@@ -140,10 +171,14 @@ describe('updateCaseStepDefinition', () => {
     const result = await definition.handler(createContext(input));
 
     expect(bulkUpdate).not.toHaveBeenCalled();
-    expect(result).toEqual({ error: getError });
+    expect(result.error).toEqual(
+      expect.objectContaining({
+        message: 'Case "case-1" could not be updated.',
+      })
+    );
   });
 
-  it('returns error when updated case is missing from response', async () => {
+  it('returns translated error when updated case is missing from response', async () => {
     const get = jest.fn().mockResolvedValue(createCaseResponseFixture);
     const bulkUpdate = jest.fn().mockResolvedValue([]);
     const getCasesClient = jest.fn().mockResolvedValue({
@@ -153,7 +188,11 @@ describe('updateCaseStepDefinition', () => {
 
     const result = await definition.handler(createContext(input));
 
-    expect(result.error).toBeInstanceOf(Error);
+    expect(result.error).toEqual(
+      expect.objectContaining({
+        message: 'Case "case-1" could not be updated.',
+      })
+    );
   });
 
   it('pushes case when push-case is enabled', async () => {
@@ -172,5 +211,23 @@ describe('updateCaseStepDefinition', () => {
       connectorId: createCaseResponseFixture.connector.id,
       pushType: 'automatic',
     });
+  });
+
+  it('returns translated error when push fails', async () => {
+    const get = jest.fn().mockResolvedValue(createCaseResponseFixture);
+    const bulkUpdate = jest.fn().mockResolvedValue([createCaseResponseFixture]);
+    const push = jest.fn().mockRejectedValue(new Error('push failed'));
+    const getCasesClient = jest.fn().mockResolvedValue({
+      cases: { get, bulkUpdate, push },
+    } as unknown as CasesClient);
+    const definition = updateCaseStepDefinition(getCasesClient);
+
+    const result = await definition.handler(createContext(input, { 'push-case': true }));
+
+    expect(result.error).toEqual(
+      expect.objectContaining({
+        message: 'Case "case-1" could not be updated.',
+      })
+    );
   });
 });
