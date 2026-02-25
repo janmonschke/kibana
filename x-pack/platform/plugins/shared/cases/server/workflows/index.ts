@@ -11,7 +11,7 @@ import type { CasesClient } from '../client';
 
 import { getCaseStepDefinition } from './steps/get_case';
 import { createCaseStepDefinition } from './steps/create_case';
-import { createCaseFromTemplateStepDefinition } from './steps/create_case_from_template';
+// import { createCaseFromTemplateStepDefinition } from './steps/create_case_from_template';
 import { updateCaseStepDefinition } from './steps/update_case';
 import { updateCasesStepDefinition } from './steps/update_cases';
 import { setCustomFieldStepDefinition } from './steps/set_custom_field';
@@ -28,7 +28,8 @@ export function registerCaseWorkflowSteps(
 
   workflowsExtensions.registerStepDefinition(getCaseStepDefinition(getCasesClient));
   workflowsExtensions.registerStepDefinition(createCaseStepDefinition(getCasesClient));
-  workflowsExtensions.registerStepDefinition(createCaseFromTemplateStepDefinition(getCasesClient));
+  // TODO: enable once https://github.com/elastic/security-team/issues/15982 has been resolved
+  // workflowsExtensions.registerStepDefinition(createCaseFromTemplateStepDefinition(getCasesClient));
   workflowsExtensions.registerStepDefinition(updateCaseStepDefinition(getCasesClient));
   workflowsExtensions.registerStepDefinition(updateCasesStepDefinition(getCasesClient));
   workflowsExtensions.registerStepDefinition(setCustomFieldStepDefinition(getCasesClient));
