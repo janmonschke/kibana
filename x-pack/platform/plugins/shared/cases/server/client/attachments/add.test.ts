@@ -19,6 +19,9 @@ import {
 import { createCasesClientMockArgs } from '../mocks';
 import { commentAttachmentType } from '../../attachment_framework/attachments';
 import { addComment } from './add';
+import { extractAndAddObservables } from './extract_observables';
+
+jest.mock('./extract_observables');
 
 describe('addComment', () => {
   const caseId = 'test-case';
@@ -114,6 +117,40 @@ describe('addComment', () => {
         ]),
       })
     );
+  });
+
+  describe('extractAndAddObservables', () => {
+    const unifiedComment = {
+      type: 'comment' as const,
+      data: { content: 'unified text' },
+      owner: SECURITY_SOLUTION_OWNER,
+    };
+
+    it('is called with caseId, the attachment wrapped in an array, the updated case, and clientArgs', async () => {
+      if (!clientArgs.unifiedAttachmentTypeRegistry.has(commentAttachmentType.id)) {
+        clientArgs.unifiedAttachmentTypeRegistry.register(commentAttachmentType);
+      }
+      (extractAndAddObservables as jest.Mock).mockResolvedValue(undefined);
+      userActionService.getMultipleCasesUserActionsTotal.mockResolvedValue({ [caseId]: 0 });
+
+      const theCase = { ...mockCases[0], id: caseId };
+      caseService.getCase.mockResolvedValue(theCase);
+      caseService.patchCase.mockResolvedValue(theCase);
+      caseService.getAllCaseComments.mockResolvedValue({
+        saved_objects: [],
+        total: 1,
+        per_page: 1,
+        page: 1,
+      });
+      attachmentService.getter.getCaseAttatchmentStats.mockResolvedValue(
+        new Map([[caseId, { alerts: 0, userComments: 0, events: 0 }]])
+      );
+      attachmentService.create.mockResolvedValue(mockCaseUnifiedAttachments[0]);
+
+      await addComment({ comment: unifiedComment, caseId }, clientArgs);
+
+      expect(extractAndAddObservables).toHaveBeenCalledTimes(1);
+    });
   });
 
   it('emits attachmentAdded event after creating a comment', async () => {
